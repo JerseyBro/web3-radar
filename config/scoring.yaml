@@ -1,0 +1,43 @@
+industry:
+  weights:
+    impact: 0.25
+    wallet_relevance: 0.25
+    novelty: 0.15
+    credibility: 0.15
+    money_flow_significance: 0.10
+    technical_significance: 0.10
+  thresholds:
+    noise: [0, 39]
+    archive: [40, 59]
+    weekly: [60, 74]
+    important: [75, 89]
+    critical: [90, 100]
+
+competitor:
+  weights:
+    strategic_importance: 0.30
+    wallet_relevance: 0.25
+    novelty: 0.20
+    credibility: 0.15
+    execution_signal: 0.10
+  thresholds:
+    noise: [0, 39]
+    archive: [40, 59]
+    weekly: [60, 74]
+    important: [75, 89]
+    critical: [90, 100]
+
+noise_keywords:
+  - "bug fix"
+  - "bug fixes"
+  - "minor fix"
+  - "minor fixes"
+  - "performance improvement"
+  - "performance improvements"
+  - "stability improvement"
+  - "stability improvements"
+  - "various improvement"
+  - "minor update"
+  - "small fix"
+
+fuzzy_threshold: 88

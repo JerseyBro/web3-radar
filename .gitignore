@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+storage/events/*.jsonl
+storage/state/seen.json
+storage/state/clusters.json
+storage/state/ai_cost.json
+storage/state/critical_alerts.json
+reports/*.md
+!reports/.gitkeep
+.pytest_cache/
+*.egg-info/
+dist/
+build/

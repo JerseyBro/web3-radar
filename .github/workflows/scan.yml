@@ -1,0 +1,46 @@
+name: Radar Scan
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      radar:
+        description: "industry|competitor|all"
+        required: false
+        default: "all"
+      mode:
+        description: "scan|weekly|dry-run"
+        required: false
+        default: "scan"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -e .
+      - name: Run scan
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          LARK_WEBHOOK_INDUSTRY: ${{ secrets.LARK_WEBHOOK_INDUSTRY }}
+          LARK_WEBHOOK_COMPETITOR: ${{ secrets.LARK_WEBHOOK_COMPETITOR }}
+          LARK_SIGNING_SECRET_INDUSTRY: ${{ secrets.LARK_SIGNING_SECRET_INDUSTRY }}
+          LARK_SIGNING_SECRET_COMPETITOR: ${{ secrets.LARK_SIGNING_SECRET_COMPETITOR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MONTHLY_AI_BUDGET_USD: "5"
+          MAX_AI_CALLS_PER_RUN: "20"
+        run: |
+          RADAR="${{ inputs.radar || 'all' }}"
+          MODE="${{ inputs.mode || 'scan' }}"
+          if [ "$MODE" = "dry-run" ]; then
+            python -m radar scan --dry-run --radar $RADAR
+          elif [ "$MODE" = "weekly" ]; then
+            python -m radar scan --weekly --radar $RADAR
+          else
+            python -m radar scan --radar $RADAR
+          fi

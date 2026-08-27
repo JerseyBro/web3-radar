@@ -1,0 +1,65 @@
+name: Weekly Reports
+on:
+  schedule:
+    # Asia/Shanghai Friday 08:20 = UTC Friday 00:20
+    - cron: "20 0 * * 5"
+    # Asia/Shanghai Friday 08:35 = UTC Friday 00:35
+    - cron: "35 0 * * 5"
+  workflow_dispatch:
+    inputs:
+      radar:
+        description: "industry|competitor|all"
+        required: false
+        default: "all"
+      mode:
+        description: "weekly|dry-run"
+        required: false
+        default: "weekly"
+
+jobs:
+  weekly-industry:
+    if: github.event_name == 'schedule' && github.event.schedule == '20 0 * * 5' || github.event.inputs.radar == 'industry' || github.event.inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -e .
+      - name: Industry Weekly
+        if: github.event.schedule == '20 0 * * 5' || inputs.radar == 'industry' || inputs.radar == 'all'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LARK_WEBHOOK_INDUSTRY: ${{ secrets.LARK_WEBHOOK_INDUSTRY }}
+          LARK_SIGNING_SECRET_INDUSTRY: ${{ secrets.LARK_SIGNING_SECRET_INDUSTRY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            python -m radar industry --weekly --dry-run
+          else
+            python -m radar industry --weekly
+          fi
+
+  weekly-competitor:
+    if: github.event_name == 'schedule' && github.event.schedule == '35 0 * * 5' || github.event.inputs.radar == 'competitor' || github.event.inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install -e .
+      - name: Competitor Weekly
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LARK_WEBHOOK_COMPETITOR: ${{ secrets.LARK_WEBHOOK_COMPETITOR }}
+          LARK_SIGNING_SECRET_COMPETITOR: ${{ secrets.LARK_SIGNING_SECRET_COMPETITOR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then
+            python -m radar competitor --weekly --dry-run
+          else
+            python -m radar competitor --weekly
+          fi

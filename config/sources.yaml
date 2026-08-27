@@ -1,0 +1,123 @@
+# Web3 Intelligence Radar - Sources
+# priority: official_primary > official_github > established_media > secondary
+industry:
+  official_primary:
+    - name: "Ethereum Official Blog"
+      url: "https://blog.ethereum.org/feed.xml"
+      type: rss
+      credibility: 95
+    - name: "Ethereum EIPs"
+      url: "https://github.com/ethereum/EIPs"
+      type: github
+      credibility: 90
+    - name: "Solana Official Blog"
+      url: "https://solana.com/news/rss.xml"
+      type: rss
+      credibility: 90
+    - name: "Base Blog"
+      url: "https://base.mirror.xyz/feed/atom"
+      type: rss
+      credibility: 85
+    - name: "WalletConnect Blog"
+      url: "https://walletconnect.com/blog/rss.xml"
+      type: rss
+      credibility: 85
+  defi_data:
+    - name: "DeFiLlama Chains"
+      url: "https://api.llama.fi/chains"
+      type: defillama
+      credibility: 90
+    - name: "CoinGecko Trending"
+      url: "https://api.coingecko.com/api/v3/search/trending"
+      type: coingecko
+      credibility: 80
+  established_media:
+    - name: "CoinDesk"
+      url: "https://www.coindesk.com/arc/outboundfeeds/rss/"
+      type: rss
+      credibility: 80
+    - name: "Blockworks"
+      url: "https://blockworks.co/feed"
+      type: rss
+      credibility: 80
+    - name: "The Block"
+      url: "https://www.theblock.co/rss.xml"
+      type: rss
+      credibility: 85
+    - name: "Decrypt"
+      url: "https://decrypt.co/feed"
+      type: rss
+      credibility: 75
+
+competitor:
+  wallets:
+    - name: "Bitget Wallet"
+      slug: "bitget-wallet"
+      official_website: "https://web3.bitget.com"
+      blog: "https://web3.bitget.com/en/blog"
+      github: "https://github.com/bitkeepcom"
+      app_store_name: "Bitget Wallet"
+      google_play_id: "com.bitkeep.wallet"
+    - name: "OKX Wallet"
+      slug: "okx-wallet"
+      official_website: "https://www.okx.com/web3"
+      blog: "https://www.okx.com/learn"
+      github: "https://github.com/okx"
+      app_store_name: "OKX: Buy Bitcoin BTC & Crypto"
+      google_play_id: "com.okinc.okex.gp"
+    - name: "UniversalX"
+      slug: "universalx"
+      official_website: "https://universalx.app"
+      blog: "https://universalx.app/blog"
+      github: ""
+      app_store_name: "UniversalX"
+      google_play_id: "app.universalx.mobile"
+    - name: "TokenPocket"
+      slug: "tokenpocket"
+      official_website: "https://www.tokenpocket.pro"
+      blog: "https://extension.tokenpocket.pro/blog"
+      github: "https://github.com/TP-Lab"
+      app_store_name: "TokenPocket - Crypto Wallet"
+      google_play_id: "vip.mytokenpocket"
+    - name: "Solflare"
+      slug: "solflare"
+      official_website: "https://solflare.com"
+      blog: "https://solflare.com/blog"
+      github: "https://github.com/solflare-wallet"
+      app_store_name: "Solflare Wallet"
+      google_play_id: "com.solflare.mobile"
+    - name: "Zerion"
+      slug: "zerion"
+      official_website: "https://zerion.io"
+      blog: "https://zerion.io/blog"
+      github: "https://github.com/zeriontech"
+      app_store_name: "Zerion: Crypto Portfolio"
+      google_play_id: "io.zerion.android"
+    - name: "Rabby Wallet"
+      slug: "rabby-wallet"
+      official_website: "https://rabby.io"
+      blog: "https://rabby.io/blog"
+      github: "https://github.com/RabbyHub"
+      app_store_name: "Rabby Wallet"
+      google_play_id: "com.debank.rabby"
+    - name: "UXUY"
+      slug: "uxuy"
+      official_website: "https://uxuy.com"
+      blog: "https://uxuy.com/blog"
+      github: ""
+      app_store_name: "UXUY Wallet"
+      google_play_id: "com.uxuy.wallet"
+    - name: "Exodus"
+      slug: "exodus"
+      official_website: "https://www.exodus.com"
+      blog: "https://www.exodus.com/blog"
+      github: "https://github.com/exodusmovement"
+      app_store_name: "Exodus: Crypto Bitcoin Wallet"
+      google_play_id: "exodusmovement.exodus"
+    - name: "Phantom"
+      slug: "phantom"
+      official_website: "https://phantom.com"
+      blog: "https://phantom.com/blog"
+      github: "https://github.com/phantom"
+      app_store_name: "Phantom - Crypto Wallet"
+      google_play_id: "app.phantom"
