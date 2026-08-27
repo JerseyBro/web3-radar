@@ -15,6 +15,10 @@ def get_settings():
     sources = load_yaml(ROOT / "config" / "sources.yaml")
     scoring = load_yaml(ROOT / "config" / "scoring.yaml")
     models = load_yaml(ROOT / "config" / "models.yaml")
+    runtime = load_yaml(ROOT / "config" / "settings.yaml") or {}
+    # Ensure runtime carries push + delivery defaults
+    runtime.setdefault("push", models.get("push") or {"weekly_enabled": True, "critical_enabled": False})
+    runtime.setdefault("delivery", {"default_outputs": ["file"], "retry_max": 3, "retry_backoff_base": 1.0})
     env_budget = os.getenv("MONTHLY_AI_BUDGET_USD")
     if env_budget:
         try:
@@ -26,4 +30,5 @@ def get_settings():
             try:
                 models[k.lower()] = int(v)
             except: pass
-    return {"sources": sources, "scoring": scoring, "models": models}
+    push = runtime.get("push") or {"weekly_enabled": True, "critical_enabled": False}
+    return {"sources": sources, "scoring": scoring, "models": models, "runtime": runtime, "push": push}

@@ -33,7 +33,7 @@ def build_collectors(settings: dict) -> list:
             collectors.append(CoinGeckoCollector(credibility=s.get("credibility",80)))
     return collectors
 
-async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: CostGuard | None = None, ai_client: OpenAIClient | None = None, do_ai: bool = True) -> dict:
+async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: CostGuard | None = None, ai_client: OpenAIClient | None = None, do_ai: bool = True, seen: set | None = None) -> dict:
     collectors = build_collectors(settings)
     results = await collect_all(collectors, client)
     all_events: list[Event] = []
@@ -42,6 +42,9 @@ async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: Co
         if not r.success:
             failed += 1
         all_events.extend(r.events)
+    # Cross-run dedupe via persistent seen set
+    if seen:
+        all_events = [e for e in all_events if e.event_id not in seen]
     raw = len(all_events)
     # Pipeline
     scoring_cfg = settings["scoring"]
@@ -60,20 +63,13 @@ async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: Co
     ai_calls_before = guard.calls_this_run if guard else 0
     if do_ai and ai_client and ai_client.available() and guard:
         models = settings["models"]
-        classifier = models.get("classifier_model","gpt-4o-mini")
-        # fallback if luna not available: use gpt-4o-mini
-        if "luna" in classifier and not ai_client.available():
-            classifier = models.get("fallback_models",{}).get("classifier","gpt-4o-mini")
         # filter to candidates (score >=40) to save cost
         candidates = [e for e in scored if e.score >= 40]
         # cap per run
         max_input = models.get("max_weekly_input_events",80)
         candidates = sorted(candidates, key=lambda x: x.score, reverse=True)[:max_input]
         if candidates:
-            # Check if model name looks unavailable, map to fallback
-            if "5.6" in classifier:
-                classifier = "gpt-4o-mini"
-            analyze_events(candidates, "industry", ai_client, guard, classifier)
+            analyze_events(candidates, "industry", ai_client, guard, models)
             # re-score after AI updates dimensions
             scored = apply_score(scored, "industry", scoring_cfg)
 
@@ -91,5 +87,6 @@ async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: Co
         "candidate_events": len(scored),
         "ai_calls": (guard.calls_this_run - ai_calls_before) if guard else 0,
         "events": scored,
+        "processed_ids": [e.event_id for e in scored],
         "critical_events": [e for e in scored if e.tier=="critical"],
     }

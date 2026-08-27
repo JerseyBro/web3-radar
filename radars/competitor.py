@@ -17,18 +17,13 @@ from pipeline.analyze import analyze_events
 from pipeline.cost_guard import CostGuard
 from pipeline.openai_client import OpenAIClient
 from storage.store import append_events
-import json
+from storage.state import StateStore
 
 logger = logging.getLogger(__name__)
 
-def build_collectors(settings: dict) -> list:
+def build_collectors(settings: dict, state: StateStore | None = None) -> list:
     wallets = settings["sources"].get("competitor",{}).get("wallets",[])
-    # Load resolved sources if exists
-    resolved_path = Path(__file__).resolve().parent.parent / "storage" / "state" / "resolved_sources.json"
-    resolved = {}
-    if resolved_path.exists():
-        try: resolved = json.loads(resolved_path.read_text())
-        except: pass
+    resolved = state.load_resolved() if state else {}
     collectors = []
     for w in wallets:
         name = w["name"]
@@ -66,8 +61,8 @@ def build_collectors(settings: dict) -> list:
         collectors.append(GooglePlayCollector(name=name, package_id=pkg))
     return collectors
 
-async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: CostGuard | None = None, ai_client: OpenAIClient | None = None, do_ai: bool = True) -> dict:
-    collectors = build_collectors(settings)
+async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: CostGuard | None = None, ai_client: OpenAIClient | None = None, do_ai: bool = True, state: StateStore | None = None, seen: set | None = None) -> dict:
+    collectors = build_collectors(settings, state)
     results = await collect_all(collectors, client)
     all_events: list[Event] = []
     failed = 0
@@ -76,6 +71,8 @@ async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: 
             failed += 1
         # filter empty app store unresolved etc not counted as failed if success True
         all_events.extend(r.events)
+    if seen:
+        all_events = [e for e in all_events if e.event_id not in seen]
     raw = len(all_events)
     scoring_cfg = settings["scoring"]
     noise_kw = scoring_cfg.get("noise_keywords",[])
@@ -93,14 +90,12 @@ async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: 
     ai_calls_before = guard.calls_this_run if guard else 0
     if do_ai and ai_client and ai_client.available() and guard:
         models = settings["models"]
-        classifier = models.get("classifier_model","gpt-4o-mini")
-        if "5.6" in classifier:
-            classifier = "gpt-4o-mini"
+        classifier = models.get("classifier", {}).get("primary") or models.get("classifier_model")
         candidates = [e for e in scored if e.score >= 40]
         max_input = models.get("max_weekly_input_events",80)
         candidates = sorted(candidates, key=lambda x: x.score, reverse=True)[:max_input]
         if candidates:
-            analyze_events(candidates, "competitor", ai_client, guard, classifier)
+            analyze_events(candidates, "competitor", ai_client, guard, models, classifier_model=classifier)
             scored = apply_score(scored, "competitor", scoring_cfg)
 
     to_store = [e for e in scored if e.tier in ("weekly","important","critical")]
@@ -116,5 +111,6 @@ async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: 
         "candidate_events": len(scored),
         "ai_calls": (guard.calls_this_run - ai_calls_before) if guard else 0,
         "events": scored,
+        "processed_ids": [e.event_id for e in scored],
         "critical_events": [e for e in scored if e.tier=="critical"],
     }

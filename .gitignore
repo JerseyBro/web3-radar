@@ -3,13 +3,17 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Runtime state lives on the radar-state git branch, NOT on main.
+storage/state/*.json
 storage/events/*.jsonl
-storage/state/seen.json
-storage/state/clusters.json
-storage/state/ai_cost.json
-storage/state/critical_alerts.json
+storage/local-receiver/*.jsonl
+
+# Generated reports (also uploaded as CI artifacts)
 reports/*.md
+reports/*.json
 !reports/.gitkeep
+
 .pytest_cache/
 *.egg-info/
 dist/

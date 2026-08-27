@@ -29,6 +29,9 @@ CLASSIFIER_SCHEMA_HINT = """Return JSON with:
   ]
 }"""
 
+def _log_fallback(from_model, to_model, reason):
+    logger.warning(f"MODEL_FALLBACK from={from_model} to={to_model} reason={reason}")
+
 def build_classifier_prompt(events: list[Event], radar: str) -> tuple[str, str]:
     system = f"You are a Web3 intelligence classifier for {radar} radar. Rate each event 0-100 on all dimensions. Be strict. Return JSON only."
     items = []
@@ -44,10 +47,32 @@ def build_classifier_prompt(events: list[Event], radar: str) -> tuple[str, str]:
     user = f"Events to classify ({radar}):\n{json.dumps(items, ensure_ascii=False, indent=2)}\n\n{CLASSIFIER_SCHEMA_HINT}"
     return system, user
 
-def analyze_events(events: list[Event], radar: str, client: OpenAIClient, guard: CostGuard, model: str, batch_size: int = 10) -> list[Event]:
-    if not events or not client.available():
+def _resolve_classifier_model(models: dict, client: OpenAIClient) -> str | None:
+    cfg = models.get("classifier", {})
+    primary = cfg.get("primary")
+    fallback = cfg.get("fallback")
+    if primary and client.model_available(primary):
+        return primary
+    if primary and client.available():
+        # primary set but we can't verify; attempt primary, fallback only if configured
+        return primary
+    if fallback and client.model_available(fallback):
+        if primary:
+            _log_fallback(primary, fallback, "primary unavailable")
+        return fallback
+    if primary:
+        # No AI: return None -> deterministic candidates saved without AI scoring
+        logger.warning(f"MODEL_FALLBACK classifier primary={primary} has no AI client/fallback; running deterministic-only")
+        return None
+    return None
+
+def analyze_events(events: list[Event], radar: str, client: OpenAIClient, guard: CostGuard, models: dict, batch_size: int = 10) -> list[Event]:
+    if not events:
         return events
-    # heuristic token estimate to check budget
+    model = _resolve_classifier_model(models, client)
+    if model is None or not client.available():
+        logger.info("Classifier AI disabled (no model / no client). Keeping deterministic scoring.")
+        return events
     scored = []
     for i in range(0, len(events), batch_size):
         batch = events[i:i+batch_size]
@@ -62,7 +87,6 @@ def analyze_events(events: list[Event], radar: str, client: OpenAIClient, guard:
         if not parsed or "events" not in parsed:
             logger.warning(f"AI classifier returned no data for batch {i}")
             continue
-        # map back
         by_id = {x.event_id: x for x in batch}
         for item in parsed["events"]:
             eid = item.get("event_id")
@@ -81,11 +105,25 @@ def analyze_events(events: list[Event], radar: str, client: OpenAIClient, guard:
         scored.extend(batch)
     return events
 
-def synthesize_report(radar: str, events: list[Event], client: OpenAIClient, guard: CostGuard, model: str, prompt_path: Path) -> str | None:
+def _resolve_synthesis_model(models: dict, client: OpenAIClient) -> str | None:
+    cfg = models.get("synthesis", {})
+    primary = cfg.get("primary")
+    fallback = cfg.get("fallback")
+    if primary and client.available():
+        return primary
+    if fallback and client.available():
+        if primary:
+            _log_fallback(primary, fallback, "primary unavailable")
+        return fallback
+    return None
+
+def synthesize_report(radar: str, events: list[Event], client: OpenAIClient, guard: CostGuard, models: dict, prompt_path: Path) -> str | None:
     if not client.available():
         return None
+    model = _resolve_synthesis_model(models, client)
+    if model is None:
+        return None
     prompt_template = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else "Summarize events."
-    # Prepare ranked events
     top = sorted(events, key=lambda x: x.score, reverse=True)[:20]
     payload = [{"title": e.title, "score": e.score, "source": e.source, "url": e.source_url, "summary": e.ai_summary or e.excerpt[:300], "why": e.why_it_matters, "wallet": e.wallet_implication} for e in top]
     system = "You are a Web3 intelligence report writer. Use the template structure exactly. Be concise, high-signal. Keep Source URLs."
@@ -96,26 +134,19 @@ def synthesize_report(radar: str, events: list[Event], client: OpenAIClient, gua
         logger.warning(f"CostGuard blocked synthesis: {reason}")
         return None
     parsed, usage = client.call_json(model, system, user, radar=radar)
-    # synthesis is markdown, not json - we used call_json but need raw
-    # redo with plain call if json fails
-    if parsed is None:
-        # try raw chat
-        try:
-            from openai import OpenAI
-            import os
-            c = client._client
-            if c:
-                resp = c.chat.completions.create(model=model, messages=[{"role":"system","content":system},{"role":"user","content":user}])
-                text = resp.choices[0].message.content
-                guard.record(model, getattr(resp.usage,"prompt_tokens",0) if resp.usage else 0, getattr(resp.usage,"completion_tokens",0) if resp.usage else 0, radar)
-                return text
-        except Exception as e:
-            logger.warning(f"synthesis fallback failed: {e}")
-            return None
-        return None
+    if parsed is None and usage.get("error"):
+        # retry with fallback model if configured
+        cfg = models.get("synthesis", {})
+        fb = cfg.get("fallback")
+        if fb and fb != model and client.available():
+            _log_fallback(model, fb, usage.get("error"))
+            model = fb
+            parsed, usage = client.call_json(model, system, user, radar=radar)
     guard.record(model, usage.get("input_tokens",0), usage.get("output_tokens",0), radar)
-    # if parsed has content key
+    if parsed is None:
+        return None
     if isinstance(parsed, dict) and "report" in parsed:
         return parsed["report"]
-    # fallback: dump
+    if isinstance(parsed, dict) and "content" in parsed:
+        return parsed["content"]
     return json.dumps(parsed, ensure_ascii=False, indent=2)

@@ -1,14 +1,26 @@
-classifier_model: "gpt-5.6-luna"
-synthesis_model: "gpt-5.6-terra"
+# Model strategy (V1.1) - explicit primary/fallback, no silent switch
+classifier:
+  primary: "gpt-5.6-luna"
+  fallback: null   # if primary unavailable, no AI classification; deterministic candidates still saved
+
+synthesis:
+  primary: "gpt-5.6-terra"
+  fallback: "gpt-5.6-luna"   # if terra fails, retry with luna
+
 deep_model: "gpt-5.6-sol"
 deep_model_enabled: false
+
+# Push feature flags (V1.1)
+push:
+  weekly_enabled: true
+  critical_enabled: false   # first week: critical immediate push OFF
 
 # Cost control
 monthly_ai_budget_usd: 5
 max_ai_calls_per_run: 20
 max_weekly_input_events: 80
 
-# Pricing per 1M tokens (USD)
+# Pricing per 1M tokens (USD) - used by cost guard
 pricing:
   gpt-5.6-luna:
     input: 1.0
@@ -19,12 +31,6 @@ pricing:
   gpt-5.6-sol:
     input: 5.0
     output: 15.0
-  # fallback
   gpt-4o-mini:
     input: 0.15
     output: 0.6
-
-# Override for testing / fallback when models not available
-fallback_models:
-  classifier: "gpt-4o-mini"
-  synthesis: "gpt-4o-mini"

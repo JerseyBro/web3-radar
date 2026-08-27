@@ -4,8 +4,9 @@ from pathlib import Path
 import httpx
 from collectors.app_store import resolve_app_store_id
 from collectors.google_play import resolve_google_play_id
+from storage.state import StateStore
 
-async def resolve_all_sources(sources_cfg: dict, out_path: Path) -> dict:
+async def resolve_all_sources(sources_cfg: dict, out_path: Path | None = None, state: StateStore | None = None) -> dict:
     wallets = sources_cfg.get("competitor",{}).get("wallets",[])
     results = {}
     async with httpx.AsyncClient(follow_redirects=True, timeout=8) as client:
@@ -25,6 +26,9 @@ async def resolve_all_sources(sources_cfg: dict, out_path: Path) -> dict:
                 "official_website": w.get("official_website"),
             }
             # incremental save
-            out_path.parent.mkdir(parents=True, exist_ok=True)
-            out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+            if state is not None:
+                state.save_resolved(results)
+            elif out_path is not None:
+                out_path.parent.mkdir(parents=True, exist_ok=True)
+                out_path.write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
     return results

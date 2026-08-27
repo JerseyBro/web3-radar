@@ -23,6 +23,11 @@ class OpenAIClient:
     def available(self) -> bool:
         return self._client is not None
 
+    def model_available(self, model: str | None = None) -> bool:
+        # We cannot reliably list models offline; assume a configured, non-empty model
+        # is available when a client exists. Without a client, nothing is available.
+        return self._client is not None
+
     def _estimate_tokens(self, text: str) -> int:
         # rough: 1 token ~ 4 chars
         return max(1, len(text)//4)

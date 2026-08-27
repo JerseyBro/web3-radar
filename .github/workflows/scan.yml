@@ -1,7 +1,7 @@
 name: Radar Scan
 on:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 */4 * * *"   # every 4 hours
   workflow_dispatch:
     inputs:
       radar:
@@ -9,9 +9,22 @@ on:
         required: false
         default: "all"
       mode:
-        description: "scan|weekly|dry-run"
+        description: "scan|dry-run"
         required: false
         default: "scan"
+      push:
+        description: "deliver external messages (default false)"
+        required: false
+        default: false
+        type: boolean
+
+# Serialize all runs that touch persistent state.
+concurrency:
+  group: web3-radar-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   scan:
@@ -23,7 +36,7 @@ jobs:
           python-version: "3.12"
           cache: "pip"
       - run: pip install -e .
-      - name: Run scan
+      - name: Run scan (state persisted to radar-state branch)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
@@ -37,10 +50,17 @@ jobs:
         run: |
           RADAR="${{ inputs.radar || 'all' }}"
           MODE="${{ inputs.mode || 'scan' }}"
-          if [ "$MODE" = "dry-run" ]; then
-            python -m radar scan --dry-run --radar $RADAR
-          elif [ "$MODE" = "weekly" ]; then
-            python -m radar scan --weekly --radar $RADAR
-          else
-            python -m radar scan --radar $RADAR
-          fi
+          PUSH="${{ inputs.push }}"
+          EXTRA=""
+          if [ "$MODE" = "dry-run" ]; then EXTRA="$EXTRA --dry-run"; fi
+          if [ "$PUSH" = "true" ]; then EXTRA="$EXTRA --push"; fi
+          python -m radar scan --radar $RADAR $EXTRA
+      - name: Upload run summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-run-summary
+          path: |
+            reports/*.json
+          if-no-files-found: ignore
+          retention-days: 14

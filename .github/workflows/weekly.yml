@@ -15,10 +15,26 @@ on:
         description: "weekly|dry-run"
         required: false
         default: "weekly"
+      push:
+        description: "deliver to Lark (default false for manual dispatch)"
+        required: false
+        default: false
+        type: boolean
+      output:
+        description: "comma list: file,lark,local-http"
+        required: false
+        default: "lark"
+
+concurrency:
+  group: web3-radar-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   weekly-industry:
-    if: github.event_name == 'schedule' && github.event.schedule == '20 0 * * 5' || github.event.inputs.radar == 'industry' || github.event.inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '20 0 * * 5' || inputs.radar == 'industry' || inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,21 +44,33 @@ jobs:
           cache: "pip"
       - run: pip install -e .
       - name: Industry Weekly
-        if: github.event.schedule == '20 0 * * 5' || inputs.radar == 'industry' || inputs.radar == 'all'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           LARK_WEBHOOK_INDUSTRY: ${{ secrets.LARK_WEBHOOK_INDUSTRY }}
           LARK_SIGNING_SECRET_INDUSTRY: ${{ secrets.LARK_SIGNING_SECRET_INDUSTRY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MONTHLY_AI_BUDGET_USD: "5"
         run: |
-          if [ "${{ inputs.mode }}" = "dry-run" ]; then
-            python -m radar industry --weekly --dry-run
-          else
-            python -m radar industry --weekly
-          fi
+          PUSH="${{ github.event_name == 'schedule' && 'true' || inputs.push }}"
+          OUT="${{ inputs.output || 'lark' }}"
+          EXTRA=""
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then EXTRA="$EXTRA --dry-run"; fi
+          if [ "$PUSH" = "true" ]; then EXTRA="$EXTRA --push"; fi
+          python -m radar industry --weekly --output $OUT $EXTRA
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-industry
+          path: |
+            reports/*-industry.md
+            reports/*-industry.json
+          if-no-files-found: ignore
+          retention-days: 30
 
   weekly-competitor:
-    if: github.event_name == 'schedule' && github.event.schedule == '35 0 * * 5' || github.event.inputs.radar == 'competitor' || github.event.inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '35 0 * * 5' || inputs.radar == 'competitor' || inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,12 +82,25 @@ jobs:
       - name: Competitor Weekly
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           LARK_WEBHOOK_COMPETITOR: ${{ secrets.LARK_WEBHOOK_COMPETITOR }}
           LARK_SIGNING_SECRET_COMPETITOR: ${{ secrets.LARK_SIGNING_SECRET_COMPETITOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MONTHLY_AI_BUDGET_USD: "5"
         run: |
-          if [ "${{ inputs.mode }}" = "dry-run" ]; then
-            python -m radar competitor --weekly --dry-run
-          else
-            python -m radar competitor --weekly
-          fi
+          PUSH="${{ github.event_name == 'schedule' && 'true' || inputs.push }}"
+          OUT="${{ inputs.output || 'lark' }}"
+          EXTRA=""
+          if [ "${{ inputs.mode }}" = "dry-run" ]; then EXTRA="$EXTRA --dry-run"; fi
+          if [ "$PUSH" = "true" ]; then EXTRA="$EXTRA --push"; fi
+          python -m radar competitor --weekly --output $OUT $EXTRA
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-competitor
+          path: |
+            reports/*-competitor.md
+            reports/*-competitor.json
+          if-no-files-found: ignore
+          retention-days: 30

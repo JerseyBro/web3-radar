@@ -18,7 +18,7 @@ def discover_test_modules():
         mods.append((name, p))
     return mods
 
-async def main():
+def main():
     passed = skipped = failed = 0
     failures = []
     for name, path in discover_test_modules():
@@ -31,7 +31,7 @@ async def main():
         for fn in funcs:
             try:
                 if inspect.iscoroutinefunction(fn):
-                    await fn()
+                    asyncio.run(fn())
                 else:
                     fn()
                 print(f"  PASS {name}.{fn.__name__}")
@@ -54,4 +54,4 @@ async def main():
     sys.exit(0)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

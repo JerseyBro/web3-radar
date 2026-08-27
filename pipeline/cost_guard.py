@@ -1,8 +1,9 @@
 from __future__ import annotations
-import json
-import time
-from pathlib import Path
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass
+from storage.state import StateStore
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class CostRecord:
@@ -14,25 +15,28 @@ class CostRecord:
     radar: str
 
 class CostGuard:
-    def __init__(self, budget_usd: float = 5.0, max_calls_per_run: int = 20, state_path: Path | None = None, pricing: dict | None = None):
+    """Real monthly budget: persisted via StateStore (radar-state branch).
+
+    - Budget is evaluated across the whole calendar month (not per-run).
+    - On new month, cost.json rolls over automatically.
+    - Reaching the budget stops non-essential AI calls but never aborts the deterministic pipeline.
+    """
+    def __init__(self, budget_usd: float = 5.0, max_calls_per_run: int = 20, pricing: dict | None = None, state: StateStore | None = None):
         self.budget_usd = budget_usd
         self.max_calls_per_run = max_calls_per_run
         self.calls_this_run = 0
         self.cost_this_run = 0.0
-        self.records: list[CostRecord] = []
         self.pricing = pricing or {}
-        self.state_path = state_path
-        # Load monthly cost from state file if exists
-        self.monthly_cost = 0.0
-        if state_path and state_path.exists():
-            try:
-                data = json.loads(state_path.read_text())
-                # simple: sum last 30 days
-                now = time.time()
-                for r in data:
-                    if now - r.get("timestamp", 0) < 30*24*3600:
-                        self.monthly_cost += r.get("cost_usd", 0)
-            except: pass
+        self.records: list[CostRecord] = []
+        self.state = state
+        if state is not None:
+            from storage import store as _store
+            self._store = _store
+            self.monthly = state.load_cost()
+        else:
+            from storage import store as _store
+            self._store = _store
+            self.monthly = _store.load_cost()
 
     def estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
         p = self.pricing.get(model) or self.pricing.get("gpt-4o-mini") or {"input":0.15,"output":0.6}
@@ -41,35 +45,35 @@ class CostGuard:
     def can_call(self, estimated_cost: float = 0.001) -> tuple[bool, str]:
         if self.calls_this_run >= self.max_calls_per_run:
             return False, f"max calls per run reached ({self.max_calls_per_run})"
-        if self.monthly_cost + self.cost_this_run + estimated_cost > self.budget_usd:
-            return False, f"monthly budget exceeded ({self.budget_usd} USD)"
+        if self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run + estimated_cost > self.budget_usd:
+            return False, f"MONTHLY budget exceeded ({self.budget_usd} USD). Stopping non-essential AI. Candidates preserved."
         return True, ""
 
-    def record(self, model: str, input_tokens: int, output_tokens: int, radar: str):
+    def record(self, model: str, input_tokens: int, output_tokens: int, radar: str) -> float:
+        import time
         cost = self.estimate_cost(model, input_tokens, output_tokens)
-        rec = CostRecord(model, input_tokens, output_tokens, cost, time.time(), radar)
-        self.records.append(rec)
+        if self.state is not None:
+            self.state.record_cost(model, input_tokens, output_tokens, cost)
+        else:
+            self._store.add_cost(model, input_tokens, output_tokens, cost)
+        self.monthly = self.state.load_cost() if self.state else self._store.load_cost()
         self.cost_this_run += cost
-        self.monthly_cost += cost
         self.calls_this_run += 1
-        # persist
-        if self.state_path:
-            try:
-                existing = []
-                if self.state_path.exists():
-                    existing = json.loads(self.state_path.read_text())
-                existing.append({"model":model,"input_tokens":input_tokens,"output_tokens":output_tokens,"cost_usd":cost,"timestamp":rec.timestamp,"radar":radar})
-                # keep last 500
-                existing = existing[-500:]
-                self.state_path.parent.mkdir(parents=True, exist_ok=True)
-                self.state_path.write_text(json.dumps(existing, indent=2))
-            except: pass
+        self.records.append(CostRecord(model, input_tokens, output_tokens, cost, time.time(), radar))
         return cost
 
     def summary(self) -> dict:
         return {
             "calls_this_run": self.calls_this_run,
             "cost_this_run": round(self.cost_this_run, 4),
-            "monthly_cost": round(self.monthly_cost, 4),
+            "monthly_cost": round(self.monthly.get("estimated_cost_usd", 0.0), 4),
+            "monthly_calls": self.monthly.get("calls", 0),
+            "month": self.monthly.get("month"),
             "budget": self.budget_usd,
+            "blocked": (self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run) >= self.budget_usd,
         }
+
+    def warning(self) -> str | None:
+        if (self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run) >= self.budget_usd:
+            return "MONTHLY BUDGET EXCEEDED - AI calls stopped; deterministic pipeline continues, candidates preserved"
+        return None

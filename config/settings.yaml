@@ -1,0 +1,29 @@
+# Runtime / delivery / persistence settings (config-driven, no code changes needed)
+
+state:
+  branch: "radar-state"
+  schema_version: 1
+
+push:
+  # First week: only weekly reports on Friday; critical immediate push off until validated.
+  weekly_enabled: true
+  critical_enabled: false
+
+delivery:
+  # default outputs if --output not given
+  default_outputs: ["file"]
+  retry_max: 3
+  retry_backoff_base: 1.0
+  timeout_seconds: 15
+  # idempotency: same target+key will not be re-sent unless --force-push
+  idempotency: true
+
+output_targets:
+  lark:
+    env_webhook: "LARK_WEBHOOK_{RADAR}"
+    env_signing: "LARK_SIGNING_SECRET_{RADAR}"
+  local_http:
+    env_url: "LOCAL_WEBHOOK_URL"
+    env_token: "LOCAL_WEBHOOK_TOKEN"
+  file:
+    dir: "reports"
