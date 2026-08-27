@@ -84,17 +84,17 @@ def build_card_from_report(report: Report) -> dict:
 def build_smoke_card(report: Report) -> dict:
     meta = report.meta or {}
     lines = [
-        "**Web3 Intelligence Radar**",
+        "📡 Web3 Intelligence Radar",
         "Delivery Test",
-        f"environment: {meta.get('environment','test')}",
-        f"radar: {report.radar}",
-        f"timestamp: {report.generated_at}",
-        f"status: {meta.get('status','ok')}",
+        f"Radar: {report.radar.capitalize()}",
+        f"Environment: {meta.get('environment', 'Production')}",
+        "Status: Delivery channel works",
+        f"Timestamp: {report.generated_at}",
     ]
     return {
         "msg_type": "interactive",
         "card": {
-            "header": {"title": {"tag": "plain_text", "content": "🧪 Radar Delivery Test"}, "template": "grey"},
+            "header": {"title": {"tag": "plain_text", "content": "📡 Web3 Intelligence Radar"}, "template": "grey"},
             "elements": [{"tag": "div", "text": {"tag": "lark_md", "content": "\n".join(lines)}}],
         },
     }

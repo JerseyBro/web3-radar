@@ -188,7 +188,7 @@ def sync_state_push(state: StateStore, dry_run: bool, summary: str):
 
 def main():
     parser = argparse.ArgumentParser(prog="radar")
-    parser.add_argument("command", choices=["scan", "industry", "competitor", "resolve", "output-test", "receiver"])
+    parser.add_argument("command", choices=["scan", "industry", "competitor", "resolve", "output-test", "receiver", "doctor", "ai-test"])
     parser.add_argument("--weekly", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--no-ai", action="store_true")
@@ -197,9 +197,18 @@ def main():
     parser.add_argument("--push", action="store_true", help="Actually deliver external messages (required; default off)")
     parser.add_argument("--force-push", action="store_true", help="Re-send even if already delivered")
     parser.add_argument("--target", default="lark", help="for output-test")
+    parser.add_argument("--model", default="classifier", help="for ai-test: classifier|synthesis")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
     args = parser.parse_args()
+
+    if args.command == "doctor":
+        from radar.doctor import run_doctor
+        raise SystemExit(run_doctor())
+
+    if args.command == "ai-test":
+        from radar.ai_test import run_ai_test
+        raise SystemExit(run_ai_test(args.model))
 
     if args.command == "resolve":
         from collectors.resolver import resolve_all_sources

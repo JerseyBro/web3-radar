@@ -36,6 +36,7 @@ jobs:
   weekly-industry:
     if: github.event.schedule == '20 0 * * 5' || inputs.radar == 'industry' || inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -72,6 +73,7 @@ jobs:
   weekly-competitor:
     if: github.event.schedule == '35 0 * * 5' || inputs.radar == 'competitor' || inputs.radar == 'all' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -1,13 +1,40 @@
 # AGENTS.md - Unified for Codex / OpenCode / Claude Code / Cursor
 
+## Goal
+Web3 Intelligence Radar（当前版本 **v0.1.0**，Minimum Usable Release）。
+
 ## 原则
-- 简洁实用主义，V1 不过度工程化
-- 先理解后修改，尽量小改动，配置优先
-- 不要引入微服务/Redis/Kafka/PG/VectorDB
-- 能用确定性逻辑的不调大模型
-- 单源失败不阻断全局
-- 所有结论保留 Source URL
-- Secret 只从环境变量读取
+- Simple > Fancy
+- Low Cost（月 AI 预算 ≤ $5）
+- Signal > Coverage
+- Config First
+- Deterministic Before AI
+- Fail Gracefully（单源失败隔离）
+- Traceable（保留 Source URL）
+- Security First（Secret 只从环境变量 / GitHub Secrets 读取，禁止输出原文）
+
+## Before Modify
+先读：
+- README
+- 相关 docs/（QUICK_START / USER_GUIDE / OPERATIONS / MAINTENANCE / TROUBLESHOOTING / SOURCES / COST_CONTROL / LARK_SETUP / GITHUB_ACTIONS / RELEASE）
+- config/
+- tests/
+
+## Do Not
+- 不随便引入数据库（PG / Redis / VectorDB）
+- 不引入消息队列 / 微服务
+- 不引入 LangChain / CrewAI 等重型 Agent 框架
+- 不绕过网站 paywall / login / robots 限制
+- 不提交 Secret（.env / 真实 webhook / signing secret）
+- 不扩大 v0.1 Scope（不加 Wallet / 不大规模加 Source / 不解决全部 Google Play / 不接 X API / 不做 Dashboard）
+
+## 版本
+唯一来源：`pyproject.toml` 的 `version`（0.1.0）。勿多文件手工维护。
+
+## 提交前
+- `python run_tests.py` FAILED=0
+- `python -m radar doctor` READY / BLOCKED_BY_CONFIGURATION
+- 不提交 Secret
 
 ## 项目结构
 - collectors/ 采集
