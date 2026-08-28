@@ -9,6 +9,7 @@ GH_AUTHENTICATED=false
 GH_REPO="JerseyBro/web3-radar"
 GH_WORKFLOW_SCOPE=false
 GH_REPO_ACCESS=false
+GH_CONTENTS_WRITE=false
 
 gh_check() {
   if command -v gh >/dev/null 2>&1; then
@@ -52,11 +53,16 @@ gh_workflow_scope() {
 }
 
 gh_contents_write() {
-  if [[ "$GH_AUTHENTICATED" != true ]]; then return 1; fi
+  if [[ "$GH_AUTHENTICATED" != true ]]; then
+    GH_CONTENTS_WRITE=false
+    return 1
+  fi
   # Attempt to read content (write permission implies read)
   if gh api repos/"$GH_REPO"/contents/.github >/dev/null 2>&1; then
+    GH_CONTENTS_WRITE=true
     return 0
   fi
+  GH_CONTENTS_WRITE=false
   return 1
 }
 

@@ -47,7 +47,7 @@ main() {
   gh_repo_access || true
   [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository ($REPO)" || missing "Repository ($REPO)"
   gh_contents_write || true
-  [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
+  [[ "$GH_CONTENTS_WRITE" == true ]] && ok "Contents Write" || missing "Contents Write"
   gh_workflow_scope || true
   [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "Workflow Permission" || warn "Workflow Permission"
 

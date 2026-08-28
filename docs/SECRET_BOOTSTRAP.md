@@ -111,6 +111,17 @@ Signing Missing 不阻塞。
 
 两者共享 Mac Keychain。通用脚本只依赖 Bash + macOS security + gh CLI。
 
-- Codex: 可能支持 OpenAI Platform secure provisioning
-- OpenCode: 需手动通过 `secrets-set-keychain.sh` 添加
+Doctor 输出示例（OpenCode / 本地 Shell）：
+
+```
+OpenAI Secure Provisioning
+--------------------------
+Current Runtime              OpenCode
+Secure Provisioning          UNAVAILABLE_IN_CURRENT_RUNTIME
+Shared Keychain Support      PASS
+```
+
+- **Codex**: 可使用 OpenAI Platform secure provisioning（如 runtime 支持），Key 直接写入 Keychain，不经过聊天窗口
+- **OpenCode**: 需手动通过 `secrets-set-keychain.sh` 添加
+- **Shared runtime**: 两个 Agent 事后复用同一套 macOS Keychain，不各存一套 Secret
 - 通用脚本只判断：CONFIGURED / MISSING

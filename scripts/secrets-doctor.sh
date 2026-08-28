@@ -75,7 +75,7 @@ main() {
     gh_repo_access || true
     [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository ($REPO)" || missing "Repository ($REPO)"
     gh_contents_write || true
-    [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
+    [[ "$GH_CONTENTS_WRITE" == true ]] && ok "Contents Write" || missing "Contents Write"
     gh_workflow_scope || true
     [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "Workflow Permission" || warn "Workflow Permission"
   else
@@ -96,6 +96,23 @@ main() {
   section "GitHub Secrets"
   check_github_secrets
 
+  section "OpenAI Secure Provisioning"
+  # Runtime detection is informational only — scripts stay agent-independent.
+  local runtime="Local Shell"
+  if [[ -n "${CODEX_HOME:-}" || -n "${CODEX_SANDBOX:-}" || -n "${CODEX:-}" ]]; then
+    runtime="Codex"
+  elif [[ -n "${OPENCODE:-}" || -n "${OPENCODE_SERVER:-}" ]]; then
+    runtime="OpenCode"
+  fi
+  log "$(printf '%-30s %s' "Current Runtime" "$runtime")"
+  if [[ "$runtime" == "Codex" ]]; then
+    log "$(printf '%-30s %s' "Secure Provisioning" "AVAILABLE")"
+    log "  (Codex may provision the key securely; do not paste keys into chat)"
+  else
+    log "$(printf '%-30s %s' "Secure Provisioning" "UNAVAILABLE_IN_CURRENT_RUNTIME")"
+  fi
+  log "$(printf '%-30s %s' "Shared Keychain Support" "PASS")"
+
   section "Overall"
   local blocked_credential=false blocked_config=false
   if [[ "$GH_AUTHENTICATED" == true && "$GH_WORKFLOW_SCOPE" != true ]]; then
@@ -114,17 +131,22 @@ main() {
     log "READY"
   fi
 
-  if [[ "$blocked_credential" == true ]]; then
-    log ""
-    log "Additional Blocker: WORKFLOW_PERMISSION_MISSING"
-    log "  gh auth refresh -s repo,workflow"
-  fi
-
-  if [[ "$blocked_config" == true ]]; then
+  if [[ "$blocked_credential" == true || "$blocked_config" == true ]]; then
+    if [[ "$blocked_credential" == true ]]; then
+      log ""
+      log "Additional Blocker:"
+      log "WORKFLOW_PERMISSION_MISSING"
+    fi
     log ""
     log "Next Actions:"
-    log "  1. ./scripts/secrets-set-keychain.sh"
-    log "  2. ./scripts/bootstrap.sh"
+    local n=1
+    if [[ "$blocked_credential" == true ]]; then
+      log "  $((n++)). gh auth refresh -s repo,workflow"
+    fi
+    if [[ "$blocked_config" == true ]]; then
+      log "  $((n++)). ./scripts/secrets-set-keychain.sh"
+      log "  $((n++)). ./scripts/bootstrap.sh"
+    fi
   fi
 
   printf '\n'

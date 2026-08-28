@@ -22,18 +22,18 @@ main() {
     missing "Contents Write"
     missing "Workflow Permission"
     log ""
-    log "ACTION REQUIRED: install gh CLI first"
+    log "ACTION_REQUIRED: MISSING_GH_CLI"
     printf '\n'
     return
   fi
 
-  gh_check
   gh_auth_check || true
 
   if [[ "$GH_AUTHENTICATED" != true ]]; then
     missing "Authenticated"
     log ""
-    log "ACTION REQUIRED: gh auth login"
+    log "ACTION_REQUIRED: NOT_AUTHENTICATED"
+    log "  gh auth login"
     printf '\n'
     return
   fi
@@ -44,7 +44,7 @@ main() {
   [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository Access ($REPO)" || missing "Repository Access ($REPO)"
 
   gh_contents_write || true
-  [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
+  [[ "$GH_CONTENTS_WRITE" == true ]] && ok "Contents Write" || missing "Contents Write"
 
   gh_workflow_scope || true
   if [[ "$GH_WORKFLOW_SCOPE" == true ]]; then
@@ -52,7 +52,8 @@ main() {
   else
     warn "Workflow Permission"
     log ""
-    log "ACTION REQUIRED: gh auth refresh -s repo,workflow"
+    log "ACTION_REQUIRED: WORKFLOW_PERMISSION_MISSING"
+    log "  gh auth refresh -s repo,workflow"
   fi
 
   printf '\n'

@@ -1,0 +1,26 @@
+#!/bin/sh
+# gh CLI stub for deterministic offline bootstrap tests.
+# Modes via GH_STUB_MODE:
+#   authenticated (default): auth OK, repo OK, contents OK, workflow scope MISSING
+#   unauthenticated: every gh command fails (NOT_AUTHENTICATED path)
+# No network access. Real gh is used when scripts run outside the test suite.
+
+case "${GH_STUB_MODE:-authenticated}" in
+  unauthenticated)
+    echo "gh: not authenticated (test stub)" >&2
+    exit 1
+    ;;
+  *)
+    case "$1 $2" in
+      "auth status") exit 0 ;;
+      "repo view") exit 0 ;;
+      "secret list") exit 1 ;;
+      *)
+        case "$*" in
+          *workflows*) exit 1 ;;
+          *) exit 0 ;;
+        esac
+        ;;
+    esac
+    ;;
+esac

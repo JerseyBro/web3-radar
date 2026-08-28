@@ -13,6 +13,7 @@ import re
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS = os.path.join(ROOT, "scripts")
 LIB = os.path.join(SCRIPTS, "lib")
+STUB_BIN = os.path.join(ROOT, "tests", "fixtures", "bin")
 
 ALL_SH = []
 for d in [SCRIPTS, LIB]:
@@ -21,9 +22,14 @@ for d in [SCRIPTS, LIB]:
             ALL_SH.append(os.path.join(d, f))
 
 
-def run(cmd, **kw):
+def run(cmd, extra_env=None, **kw):
+    env = dict(os.environ)
+    env["PATH"] = STUB_BIN + os.pathsep + env["PATH"]
+    if extra_env:
+        env.update(extra_env)
     return subprocess.run(
-        cmd, shell=True, capture_output=True, text=True, timeout=30, **kw
+        cmd, shell=True, capture_output=True, text=True, timeout=30,
+        stdin=subprocess.DEVNULL, env=env, **kw
     )
 
 
@@ -67,6 +73,8 @@ ALLOWED_STATUS = {
     "READY", "SKIPPED", "DELETED", "NOT SET", "NOT CREATED", "LOCAL_ONLY",
     "NOT TESTED", "ENABLED", "DISABLED", "READY_FOR_E2E",
     "ACTION_REQUIRED", "UNAVAILABLE_IN_CURRENT_RUNTIME",
+    "NOT_AUTHENTICATED", "MISSING_GH_CLI", "WORKFLOW_PERMISSION_MISSING",
+    "AVAILABLE", "OpenCode", "Codex",
 }
 
 
@@ -149,14 +157,59 @@ def test_scripts_executable():
 
 
 def test_doctor_workflow_missing_not_unauthenticated():
-    """When authenticated but workflow scope missing, doctor must NOT say
-    'not authenticated'. It must say BLOCKED_BY_CREDENTIAL_SCOPE."""
+    """With stub gh: authenticated but workflow scope missing.
+    Doctor must report BLOCKED_BY_CREDENTIAL_SCOPE (NOT 'not authenticated')
+    and list WORKFLOW_PERMISSION_MISSING with the refresh action."""
     r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
-    # If authenticated (likely in CI/dev), check no misclassification
-    if "Authenticated     PASS" in r.stdout or "Authenticated                  PASS" in r.stdout:
-        assert "not authenticated" not in r.stdout.lower(), \
-            "Doctor incorrectly says 'not authenticated' when authenticated"
+    assert r.returncode == 0, f"doctor failed:\n{r.stdout}\n{r.stderr}"
+    assert "Authenticated" in r.stdout
+    assert "BLOCKED_BY_CREDENTIAL_SCOPE" in r.stdout, \
+        "doctor must report credential-scope blocker when workflow scope missing"
+    assert "WORKFLOW_PERMISSION_MISSING" in r.stdout
+    assert "gh auth refresh -s repo,workflow" in r.stdout
+    assert "not authenticated" not in r.stdout.lower()
     print("PASSED: doctor workflow-missing semantics")
+
+
+def test_unauthenticated_shows_not_authenticated():
+    """With unauthenticated stub gh, github-auth-check must say
+    NOT_AUTHENTICATED and suggest gh auth login (never refresh)."""
+    r = run(f"bash {SCRIPTS}/github-auth-check.sh 2>&1",
+            extra_env={"GH_STUB_MODE": "unauthenticated"})
+    assert r.returncode == 0, f"github-auth-check failed:\n{r.stdout}\n{r.stderr}"
+    assert "NOT_AUTHENTICATED" in r.stdout
+    assert "gh auth login" in r.stdout
+    assert "refresh" not in r.stdout, \
+        "unauthenticated user must NOT be told to run gh auth refresh"
+    print("PASSED: unauthenticated semantics")
+
+
+def test_secret_missing_shows_blocked_by_configuration():
+    """With authenticated stub gh but no keychain secrets, doctor overall
+    must be BLOCKED_BY_CONFIGURATION (not FAIL), and required secrets
+    must show MISSING while optional ones show OPTIONAL."""
+    # Remove GH_STUB_MODE so the default authenticated stub is used.
+    r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
+    assert r.returncode == 0
+    out = r.stdout
+    assert "MISSING" in out and "FAIL" not in out.replace("FAIL:", "")
+    # Optional signing secrets must be OPTIONAL, never MISSING/BLOCKED/FAIL
+    assert "Industry Signing               OPTIONAL" in out or "OPTIONAL" in out
+    print("PASSED: secret-missing semantics")
+
+
+def test_runtime_provisioning_semantics():
+    """Doctor must report runtime provisioning honestly:
+    AVAILABLE only for Codex runtime, UNAVAILABLE_IN_CURRENT_RUNTIME otherwise,
+    and Shared Keychain Support always PASS."""
+    r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
+    assert "Secure Provisioning" in r.stdout, "doctor missing Secure Provisioning section"
+    assert ("UNAVAILABLE_IN_CURRENT_RUNTIME" in r.stdout) or ("AVAILABLE" in r.stdout)
+    assert "Shared Keychain Support" in r.stdout, "doctor missing Shared Keychain Support"
+    # Non-Codex runtime must NOT claim AVAILABLE provisioning
+    if "Current Runtime" in r.stdout and "Codex" not in r.stdout.split("Current Runtime")[1].split("\n")[0]:
+        assert "UNAVAILABLE_IN_CURRENT_RUNTIME" in r.stdout
+    print("PASSED: runtime provisioning semantics")
 
 
 def test_production_check_blockers_listed():
@@ -195,6 +248,9 @@ if __name__ == "__main__":
         test_env_gitignore,
         test_scripts_executable,
         test_doctor_workflow_missing_not_unauthenticated,
+        test_unauthenticated_shows_not_authenticated,
+        test_secret_missing_shows_blocked_by_configuration,
+        test_runtime_provisioning_semantics,
         test_production_check_blockers_listed,
         test_no_secret_in_output,
     ]
