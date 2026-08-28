@@ -52,7 +52,10 @@ check_github_secrets() {
       fi
     done
   else
-    log "  (GitHub not authenticated — skipping)"
+    for i in "${!RADAR_SERVICES[@]}"; do
+      env_name="${RADAR_ENV_NAMES[$i]}"
+      missing "$env_name"
+    done
   fi
 }
 
@@ -65,36 +68,63 @@ main() {
   require_cmd "gh" && ok "gh CLI" || missing "gh CLI"
 
   section "GitHub"
-  if command -v gh >/dev/null 2>&1; then
-    gh_check
+  gh_check
+  if [[ "$GH_AVAILABLE" == true ]]; then
     gh_auth_check || true
     [[ "$GH_AUTHENTICATED" == true ]] && ok "Authenticated" || missing "Authenticated"
     gh_repo_access || true
-    [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository" || missing "Repository"
+    [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository ($REPO)" || missing "Repository ($REPO)"
+    gh_contents_write || true
+    [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
     gh_workflow_scope || true
     [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "Workflow Permission" || warn "Workflow Permission"
   else
-    missing "gh CLI"
     missing "Authenticated"
-    missing "Repository"
+    missing "Repository ($REPO)"
+    missing "Contents Write"
     missing "Workflow Permission"
   fi
 
   section "Local Secret Store"
   check_local_secrets
 
+  section "Optional"
+  optional "Industry Signing"
+  optional "Competitor Signing"
+  optional "Local HTTP Token"
+
   section "GitHub Secrets"
   check_github_secrets
 
   section "Overall"
-  local all_ok=true req
+  local blocked_credential=false blocked_config=false
+  if [[ "$GH_AUTHENTICATED" == true && "$GH_WORKFLOW_SCOPE" != true ]]; then
+    blocked_credential=true
+  fi
+  local req
   for req in "${RADAR_REQUIRED_SERVICES[@]}"; do
-    if ! keychain_exists "$req"; then all_ok=false; break; fi
+    if ! keychain_exists "$req"; then blocked_config=true; break; fi
   done
-  if [[ "$all_ok" == true ]]; then
-    log "READY"
-  else
+
+  if [[ "$blocked_credential" == true ]]; then
+    log "BLOCKED_BY_CREDENTIAL_SCOPE"
+  elif [[ "$blocked_config" == true ]]; then
     log "BLOCKED_BY_CONFIGURATION"
+  else
+    log "READY"
+  fi
+
+  if [[ "$blocked_credential" == true ]]; then
+    log ""
+    log "Additional Blocker: WORKFLOW_PERMISSION_MISSING"
+    log "  gh auth refresh -s repo,workflow"
+  fi
+
+  if [[ "$blocked_config" == true ]]; then
+    log ""
+    log "Next Actions:"
+    log "  1. ./scripts/secrets-set-keychain.sh"
+    log "  2. ./scripts/bootstrap.sh"
   fi
 
   printf '\n'

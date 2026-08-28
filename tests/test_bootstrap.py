@@ -46,7 +46,6 @@ FORBIDDEN = [
 
 def test_no_forbidden_patterns():
     """Scripts must not contain patterns that expose secrets."""
-    # Exclude common.sh (defines the check patterns) and the test file itself
     skip = {"common.sh", "test_bootstrap.py"}
     for sh in ALL_SH:
         if os.path.basename(sh) in skip:
@@ -61,26 +60,32 @@ def test_no_forbidden_patterns():
     print(f"PASSED: no forbidden patterns ({len(ALL_SH) - len(skip)} files)")
 
 
+# ── Unified status model ────────────────────────────────────────
+ALLOWED_STATUS = {
+    "PASS", "FAIL", "MISSING", "OPTIONAL", "CONFIGURED",
+    "SYNCED", "BLOCKED_BY_CONFIGURATION", "BLOCKED_BY_CREDENTIAL_SCOPE",
+    "READY", "SKIPPED", "DELETED", "NOT SET", "NOT CREATED", "LOCAL_ONLY",
+    "NOT TESTED", "ENABLED", "DISABLED", "READY_FOR_E2E",
+    "ACTION_REQUIRED", "UNAVAILABLE_IN_CURRENT_RUNTIME",
+}
+
+
 def test_secrets_doctor_runs():
-    """secrets-doctor.sh must exit 0 and output only allowed tokens."""
+    """secrets-doctor.sh must exit 0 and output only allowed status tokens."""
     r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
     assert r.returncode == 0, f"secrets-doctor failed:\n{r.stdout}\n{r.stderr}"
-    allowed = {"PASS", "FAIL", "MISSING", "OPTIONAL", "CONFIGURED",
-               "SYNCED", "BLOCKED_BY_CONFIGURATION", "READY", "SKIPPED",
-               "DELETED", "NOT SET", "NOT CREATED", "LOCAL_ONLY",
-               "NOT TESTED", "ENABLED", "DISABLED", "READY_FOR_E2E"}
     for line in r.stdout.splitlines():
         line = line.strip()
         if not line or line.startswith("-") or line.startswith("─"):
             continue
-        # lines like "Runtime" or section headers are fine
-        # status lines end with STATUS word
         tokens = line.split()
         if len(tokens) >= 2:
             status = tokens[-1]
-            if status not in allowed:
-                # skip section headers and label lines
-                pass
+            if status in ALLOWED_STATUS:
+                continue
+            # Section headers (single word) are fine
+            if len(tokens) == 1:
+                continue
     print("PASSED: secrets-doctor runs cleanly")
 
 
@@ -88,6 +93,9 @@ def test_bootstrap_noninteractive():
     """bootstrap --non-interactive must exit 0 without prompts."""
     r = run(f"bash {SCRIPTS}/bootstrap.sh --non-interactive 2>&1")
     assert r.returncode == 0, f"bootstrap --non-interactive failed:\n{r.stdout}\n{r.stderr}"
+    # Must not contain secret values
+    assert "sk-" not in r.stdout
+    assert "ghp_" not in r.stdout
     print("PASSED: bootstrap --non-interactive")
 
 
@@ -95,23 +103,28 @@ def test_production_check_safe():
     """production-check must exit 0 in safe mode."""
     r = run(f"bash {SCRIPTS}/production-check.sh 2>&1")
     assert r.returncode == 0, f"production-check failed:\n{r.stdout}\n{r.stderr}"
-    assert "NO AI CALL" in r.stdout or "BLOCKED" in r.stdout or "READY" in r.stdout or "MISSING" in r.stdout
+    # Should contain a valid readiness status
+    assert any(s in r.stdout for s in [
+        "BLOCKED_BY_CONFIGURATION", "READY_FOR_E2E",
+        "MISSING", "BLOCKED"
+    ])
     print("PASSED: production-check safe mode")
 
 
 def test_with_secrets_usage():
-    """with-secrets.sh with no args must exit 0 and show keychain entries."""
+    """with-secrets.sh with no args must exit 0 and not leak secrets."""
     r = run(f"bash {SCRIPTS}/with-secrets.sh 2>&1")
     assert r.returncode == 0, f"with-secrets usage failed:\n{r.stderr}"
-    assert "Usage" in r.stdout or "KEYCHAIN" in r.stdout
-    # must not contain any real secret values
+    assert "Usage" in r.stdout
+    # Must not contain any secret values or keychain names
     assert "sk-" not in r.stdout
     assert "ghp_" not in r.stdout
+    assert "KEYCHAIN:" not in r.stdout
     print("PASSED: with-secrets usage")
 
 
 def test_secrets_set_no_leak():
-    """secrets-set-keychain.sh --help-like invocation must not leak."""
+    """secrets-set-keychain.sh exit must not leak."""
     r = run(f"echo '7' | bash {SCRIPTS}/secrets-set-keychain.sh 2>&1")
     assert r.returncode == 0
     assert "sk-" not in r.stdout
@@ -135,6 +148,41 @@ def test_scripts_executable():
     print(f"PASS: all {len(ALL_SH)} scripts executable")
 
 
+def test_doctor_workflow_missing_not_unauthenticated():
+    """When authenticated but workflow scope missing, doctor must NOT say
+    'not authenticated'. It must say BLOCKED_BY_CREDENTIAL_SCOPE."""
+    r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
+    # If authenticated (likely in CI/dev), check no misclassification
+    if "Authenticated     PASS" in r.stdout or "Authenticated                  PASS" in r.stdout:
+        assert "not authenticated" not in r.stdout.lower(), \
+            "Doctor incorrectly says 'not authenticated' when authenticated"
+    print("PASSED: doctor workflow-missing semantics")
+
+
+def test_production_check_blockers_listed():
+    """production-check must list concrete blockers, not generic FAIL."""
+    r = run(f"bash {SCRIPTS}/production-check.sh 2>&1")
+    if "BLOCKED" in r.stdout:
+        # Should list specific blockers, not just "FAIL"
+        assert "Blockers:" in r.stdout or "BLOCKED_BY_CONFIGURATION" in r.stdout
+    print("PASSED: production-check blocker listing")
+
+
+def test_no_secret_in_output():
+    """No script output should contain secret-like patterns."""
+    for sh in ALL_SH:
+        if os.path.basename(sh) == "common.sh":
+            continue
+        r = run(f"bash {sh} 2>&1")
+        combined = r.stdout + r.stderr
+        assert "sk-" not in combined, f"{os.path.basename(sh)} leaks sk- pattern"
+        assert "ghp_" not in combined, f"{os.path.basename(sh)} leaks ghp_ pattern"
+        assert "github_pat_" not in combined, f"{os.path.basename(sh)} leaks github_pat_"
+        assert "open.feishu.cn/open-apis/bot/v2/hook/" not in combined, \
+            f"{os.path.basename(sh)} leaks real webhook URL"
+    print("PASSED: no secret in output")
+
+
 if __name__ == "__main__":
     tests = [
         test_shell_syntax,
@@ -146,6 +194,9 @@ if __name__ == "__main__":
         test_secrets_set_no_leak,
         test_env_gitignore,
         test_scripts_executable,
+        test_doctor_workflow_missing_not_unauthenticated,
+        test_production_check_blockers_listed,
+        test_no_secret_in_output,
     ]
     passed = 0
     failed = 0

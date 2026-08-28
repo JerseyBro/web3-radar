@@ -4,17 +4,6 @@ set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/lib/keychain.sh"
 
-show_keychain() {
-  local i svc env_name
-  for i in "${!RADAR_SERVICES[@]}"; do
-    svc="${RADAR_SERVICES[$i]}"
-    env_name="${RADAR_ENV_NAMES[$i]}"
-    if keychain_exists "$svc"; then
-      printf "  KEYCHAIN: %-35s -> %s\n" "$svc" "$env_name"
-    fi
-  done
-}
-
 export_deg() {
   local svc="$1"
   local env_name="$2"
@@ -30,11 +19,12 @@ main() {
   if [[ $# -eq 0 ]]; then
     echo "Usage: with-secrets.sh <command> [args...]"
     echo ""
-    echo "Reads secrets from macOS Keychain and executes the command with"
-    echo "secrets injected into the environment."
-    show_keychain
+    echo "Reads secrets from macOS Keychain and injects them into the child"
+    echo "process environment. Only configured secrets are injected."
     exit 0
   fi
+
+  log "Injecting configured secrets into child process..."
 
   local i
   for i in "${!RADAR_SERVICES[@]}"; do

@@ -16,75 +16,79 @@ GitHub Actions Secrets (Source of Truth: Production)
 Radar CLI via with-secrets.sh
 ```
 
-Codex 与 OpenCode 共享同一套 Mac Keychain，各自存一套 Secret。
+Codex 与 OpenCode 共享同一套 Mac Keychain。
 
-## First Setup
+## First-Time Setup (最短流程)
 
-### GitHub Auth
+### Step 1: GitHub Auth
 
 ```bash
-# 1. Login with repo + workflow scope
+# 未登录 → 先登录
 gh auth login
 
-# 2. Verify
+# 已登录但 workflow scope 不足 → 刷新
+gh auth refresh -s repo,workflow
+
+# 验证
 ./scripts/github-auth-check.sh
 ```
 
-### OpenAI
+### Step 2: 配置 Secret
 
 ```bash
-# Mac Keychain
 ./scripts/secrets-set-keychain.sh
-# 选 1. OpenAI → 输入 API Key
 ```
 
-### Lark
+选 1. OpenAI → 输入 API Key
+选 2. Lark Industry → 输入 Webhook URL
+选 3. Lark Competitor → 输入 Webhook URL（V0.1 允许与 Industry 共用同一个）
 
-V0.1 允许 Industry 与 Competitor 共用同一个 Lark Bot。
-
-创建一个 Web3 Radar 测试 Bot，复制 Webhook URL，运行 `secrets-set-keychain.sh` 设置 Industry + Competitor Webhook。
-
-## Bootstrap
+### Step 3: 引导
 
 ```bash
 ./scripts/bootstrap.sh
 ```
 
-默认安全：NO AI CALL / NO LARK PUSH。
-
-## Add / Replace Secret
-
-```bash
-./scripts/secrets-set-keychain.sh
-```
-
-## Secret Doctor
-
-```bash
-./scripts/secrets-doctor.sh
-```
-
-## GitHub Sync
-
-```bash
-./scripts/secrets-sync-github.sh
-```
-
-Keychain → stdin → `gh secret set`。不经过 echo。
-
-## Run With Secrets
-
-```bash
-./scripts/with-secrets.sh python -m radar doctor
-./scripts/with-secrets.sh python -m radar ai-test
-./scripts/with-secrets.sh python -m radar output-test --target lark --radar industry --push
-```
-
-## Production Check
+### Step 4: 生产就绪
 
 ```bash
 ./scripts/production-check.sh
 ```
+
+### Step 5: Smoke Test
+
+```bash
+./scripts/with-secrets.sh python -m radar ai-test
+./scripts/with-secrets.sh python -m radar output-test --target lark --radar industry --push
+```
+
+## Commands
+
+| 命令 | 作用 |
+|------|------|
+| `bootstrap.sh` | 一键引导（默认安全：NO AI CALL / NO LARK PUSH） |
+| `secrets-doctor.sh` | 健康检查 |
+| `production-check.sh` | 生产就绪检查 |
+| `secrets-set-keychain.sh` | 写入/替换 Keychain Secret |
+| `secrets-remove-keychain.sh` | 删除 Keychain Secret |
+| `secrets-sync-github.sh` | Keychain → GitHub Secrets |
+| `with-secrets.sh <cmd>` | 从 Keychain 注入 Secret 执行命令 |
+| `github-auth-check.sh` | GitHub 权限检查 |
+
+## Status Model
+
+| 状态 | 含义 |
+|------|------|
+| PASS | 检查通过 |
+| MISSING | 必填项未配置 |
+| OPTIONAL | 可选项未配置（不阻塞） |
+| CONFIGURED | 已配置 |
+| SYNCED | 已同步到 GitHub |
+| READY / READY_FOR_E2E | 生产就绪 |
+| BLOCKED_BY_CONFIGURATION | 缺少必要 Secret |
+| BLOCKED_BY_CREDENTIAL_SCOPE | GitHub credential scope 不足 |
+| ACTION_REQUIRED | 需要用户手动操作 |
+| FAIL | 代码/运行时异常（非配置问题） |
 
 ## Rotation
 
@@ -98,10 +102,15 @@ Keychain → stdin → `gh secret set`。不经过 echo。
 ./scripts/secrets-remove-keychain.sh
 ```
 
+## Lark Signing
+
+V0.1 默认不配置 Signing Secret。Webhook 无需 Signing 即可工作。
+Signing Missing 不阻塞。
+
 ## Codex / OpenCode
 
-两者共享 Mac Keychain。Secret 不存各 Agent 自己的位置。
+两者共享 Mac Keychain。通用脚本只依赖 Bash + macOS security + gh CLI。
 
-- Codex 可安全 provisioning OpenAI Key（如具备能力）。
-- OpenCode 需手动通过 `secrets-set-keychain.sh` 添加。
-- 通用脚本只判断：CONFIGURED / MISSING。
+- Codex: 可能支持 OpenAI Platform secure provisioning
+- OpenCode: 需手动通过 `secrets-set-keychain.sh` 添加
+- 通用脚本只判断：CONFIGURED / MISSING

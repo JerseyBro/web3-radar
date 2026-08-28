@@ -55,22 +55,10 @@ Lark / Local HTTP / File
 
 ## Production Bootstrap
 
-First-time setup:
-
 ```bash
-./scripts/bootstrap.sh
-```
-
-Run command with local Keychain secrets:
-
-```bash
-./scripts/with-secrets.sh <command>
-```
-
-Production readiness:
-
-```bash
-./scripts/production-check.sh
+./scripts/bootstrap.sh              # 一键引导
+./scripts/with-secrets.sh <command>  # 从 Keychain 注入 Secret 执行
+./scripts/production-check.sh        # 生产就绪检查
 ```
 
 详细：[docs/SECRET_BOOTSTRAP.md](docs/SECRET_BOOTSTRAP.md)

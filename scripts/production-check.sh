@@ -41,14 +41,15 @@ main() {
 
   section "GitHub"
   require_cmd "gh" && ok "gh CLI" || missing "gh CLI"
-  gh_check || true
+  gh_check
   gh_auth_check || true
   [[ "$GH_AUTHENTICATED" == true ]] && ok "Authenticated" || missing "Authenticated"
   gh_repo_access || true
   [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository ($REPO)" || missing "Repository ($REPO)"
-  ok "Actions"
+  gh_contents_write || true
+  [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
   gh_workflow_scope || true
-  [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "workflow permission" || missing "workflow permission"
+  [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "Workflow Permission" || warn "Workflow Permission"
 
   if [[ "$GH_AUTHENTICATED" == true ]]; then
     if git ls-remote --heads "$REPO" 2>/dev/null | grep -q "refs/heads/radar-state"; then
@@ -72,16 +73,37 @@ main() {
   log "Competitor                    Fri 08:35 Asia/Shanghai"
 
   section "Production Readiness"
-  local ready=true req
-  [[ "$GH_AUTHENTICATED" == true ]] || ready=false
-  [[ "$GH_REPO_ACCESS" == true ]] || ready=false
+  local blockers=()
+  if [[ "$GH_AUTHENTICATED" != true ]]; then
+    blockers+=("NOT_AUTHENTICATED")
+  fi
+  if [[ "$GH_AUTHENTICATED" == true && "$GH_WORKFLOW_SCOPE" != true ]]; then
+    blockers+=("WORKFLOW_PERMISSION_MISSING")
+  fi
+  local req
   for req in "${RADAR_REQUIRED_SERVICES[@]}"; do
-    if ! keychain_exists "$req"; then ready=false; break; fi
+    if ! keychain_exists "$req"; then
+      local env_name=""
+      for i in "${!RADAR_SERVICES[@]}"; do
+        if [[ "${RADAR_SERVICES[$i]}" == "$req" ]]; then
+          env_name="${RADAR_ENV_NAMES[$i]}"
+          break
+        fi
+      done
+      blockers+=("${env_name}_MISSING")
+    fi
   done
-  if [[ "$ready" == true ]]; then
+
+  if [[ ${#blockers[@]} -eq 0 ]]; then
     log "READY_FOR_E2E"
   else
     log "BLOCKED_BY_CONFIGURATION"
+    log ""
+    log "Blockers:"
+    local b
+    for b in "${blockers[@]}"; do
+      log "  - $b"
+    done
   fi
 
   section "Next"

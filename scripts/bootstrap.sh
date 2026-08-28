@@ -60,7 +60,10 @@ check_github_secrets() {
       fi
     done
   else
-    log "  (GitHub not authenticated — skipping)"
+    for i in "${!RADAR_SERVICES[@]}"; do
+      env_name="${RADAR_ENV_NAMES[$i]}"
+      missing "$env_name"
+    done
   fi
 }
 
@@ -81,15 +84,21 @@ main() {
   require_cmd "gh" && ok "gh CLI" || missing "gh CLI"
 
   section "GitHub Auth"
+  gh_check
   if [[ "$GH_AVAILABLE" == true ]]; then
     gh_auth_check || true
     [[ "$GH_AUTHENTICATED" == true ]] && ok "Authenticated" || missing "Authenticated"
     gh_repo_access || true
     [[ "$GH_REPO_ACCESS" == true ]] && ok "Repository ($REPO)" || missing "Repository ($REPO)"
+    gh_contents_write || true
+    [[ "$?" -eq 0 ]] && ok "Contents Write" || missing "Contents Write"
     gh_workflow_scope || true
     [[ "$GH_WORKFLOW_SCOPE" == true ]] && ok "Workflow Permission" || warn "Workflow Permission"
   else
-    missing "gh CLI"
+    missing "Authenticated"
+    missing "Repository ($REPO)"
+    missing "Contents Write"
+    missing "Workflow Permission"
   fi
 
   section "Local Secrets"
@@ -125,6 +134,7 @@ main() {
   local ready=true
   [[ "$GH_AUTHENTICATED" == true ]] || ready=false
   [[ "$GH_REPO_ACCESS" == true ]] || ready=false
+  [[ "$GH_WORKFLOW_SCOPE" == true ]] || ready=false
   for req in "${RADAR_REQUIRED_SERVICES[@]}"; do
     if ! keychain_exists "$req"; then ready=false; break; fi
   done
