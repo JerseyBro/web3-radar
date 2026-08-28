@@ -57,5 +57,28 @@ Web3 Intelligence Radar（当前版本 **v0.1.0**，Minimum Usable Release）。
 - 调模型: 改 config/models.yaml
 - Dry Run: python -m radar scan --dry-run --no-ai
 
+## Secret Policy
+
+Agent MAY:
+- check secret presence
+- use secrets for approved commands
+- sync secrets to GitHub
+- report CONFIGURED / MISSING
+
+Agent MUST NOT:
+- print secrets
+- cat secret files
+- echo secrets
+- print all environment variables
+- commit .env
+- log webhook URLs
+- store secrets in docs
+- store secrets in reports
+- store secrets in artifacts
+
+Secret Source of Truth:
+- macOS Keychain for local
+- GitHub Secrets for Actions
+
 ## 提交
 - 小步提交，说明变更与验证结果

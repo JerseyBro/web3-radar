@@ -53,6 +53,28 @@ Lark / Local HTTP / File
 - [Parallel Run](docs/PARALLEL_RUN.md)
 - [v0.1 Release Checklist](docs/V0.1_RELEASE_CHECKLIST.md)
 
+## Production Bootstrap
+
+First-time setup:
+
+```bash
+./scripts/bootstrap.sh
+```
+
+Run command with local Keychain secrets:
+
+```bash
+./scripts/with-secrets.sh <command>
+```
+
+Production readiness:
+
+```bash
+./scripts/production-check.sh
+```
+
+详细：[docs/SECRET_BOOTSTRAP.md](docs/SECRET_BOOTSTRAP.md)
+
 ## 当前版本
 
 **v0.1.0**
