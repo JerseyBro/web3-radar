@@ -2,16 +2,28 @@
 
 数据源维护手册。
 
-## Industry Sources（当前真实配置）
+## Industry Sources（当前真实配置，`config/sources.yaml`）
 
-- Official Primary：Ethereum Blog、Ethereum EIPs、Solana Blog、Base Blog、WalletConnect Blog
-- DeFi Data：DeFiLlama Chains、CoinGecko Trending
-- Established Media：CoinDesk、Blockworks、The Block、Decrypt
+- Official Primary：Ethereum Blog（RSS）、Ethereum EIPs（GitHub）、Solana Blog（RSS）、Base Blog（RSS）、WalletConnect Blog（RSS）
+- DeFi Data：DeFiLlama Chains（API）、CoinGecko Trending（API）
+- Established Media：CoinDesk（RSS）、Blockworks（RSS）、The Block（RSS）、Decrypt（RSS）
 
-## Competitor Sources（10 Wallet）
+## Competitor Sources（10 Wallet，`config/sources.yaml` → `competitor.wallets`）
 
-Bitget Wallet、OKX Wallet、UniversalX、TokenPocket、Solflare、Zerion、Rabby Wallet、UXUY、Exodus、Phantom。
-每个钱包监测：Official Website / Blog / GitHub / App Store / Google Play。
+| Wallet | App Store | Google Play | Blog | GitHub |
+|--------|-----------|-------------|------|--------|
+| Bitget Wallet | `Bitget Wallet` | `com.bitkeep.wallet` | ✓ | ✓ |
+| OKX Wallet | `OKX: Buy Bitcoin BTC & Crypto` | `com.okinc.okex.gp` | ✓ | ✓ |
+| UniversalX | `UniversalX` | `app.universalx.mobile` | ✓ | — |
+| TokenPocket | `TokenPocket - Crypto Wallet` | `vip.mytokenpocket` | ✓ | ✓ |
+| Solflare | `Solflare` | `com.solflare.mobile` | ✓ | ✓ |
+| Zerion | `Zerion` | `io.zerion.android` | ✓ | ✓ |
+| Rabby Wallet | `Rabby Wallet` | `com.debank.rabby` | ✓ | ✓ |
+| UXUY | `UXUY` | `com.uxuy.wallet` | ✓ | — |
+| Exodus | `Exodus` | `exodusmovement.exodus` | ✓ | — |
+| Phantom | `Phantom` | `app.phantom` | ✓ | ✓ |
+
+> 每个钱包监测：Official Website + Blog + GitHub + App Store + Google Play。以 `storage/state/resolved_sources.json` 的 `resolved` / `unresolved` 为准。
 
 ## Source Priority
 

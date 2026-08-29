@@ -62,6 +62,28 @@ gh auth refresh -s repo,workflow
 ./scripts/with-secrets.sh python -m radar output-test --target lark --radar industry --push
 ```
 
+> Smoke 需 `--push` 才真发；`bootstrap.sh` / `production-check.sh` 本身永不发 Lark。
+
+以后日常通常只需：
+
+```bash
+./scripts/bootstrap.sh          # 检查 + 必要时同步
+./scripts/production-check.sh   # 生产就绪
+```
+
+## Secret 映射表
+
+| 用途 | Keychain Service | GitHub Secret | 必填 |
+|------|------------------|---------------|------|
+| OpenAI | `web3-radar-openai` | `OPENAI_API_KEY` | 是 |
+| Industry Lark | `web3-radar-lark-industry` | `LARK_WEBHOOK_INDUSTRY` | 是 |
+| Competitor Lark | `web3-radar-lark-competitor` | `LARK_WEBHOOK_COMPETITOR` | 是 |
+| Industry Signing | `web3-radar-lark-signing-industry` | `LARK_SIGNING_SECRET_INDUSTRY` | 否 |
+| Competitor Signing | `web3-radar-lark-signing-competitor` | `LARK_SIGNING_SECRET_COMPETITOR` | 否 |
+| Local HTTP Token | `web3-radar-local-http-token` | `LOCAL_WEBHOOK_TOKEN` | 否 |
+
+> Keychain `account` 统一为 `$USER`；GitHub 同步走 `Keychain → stdin → gh secret set`（不经 `echo`）。
+
 ## Commands
 
 | 命令 | 作用 |
@@ -109,7 +131,19 @@ Signing Missing 不阻塞。
 
 ## Codex / OpenCode
 
-两者共享 Mac Keychain。通用脚本只依赖 Bash + macOS security + gh CLI。
+两者共享 Mac Keychain，不各自维护 Secret：
+
+```
+        Codex
+          ↘
+           Mac Keychain
+          ↗
+        OpenCode
+```
+
+> 不要 `.codex/.env` / `.opencode/.env` 各存一份。
+
+通用脚本只依赖 Bash + macOS security + gh CLI。
 
 Doctor 输出示例（OpenCode / 本地 Shell）：
 
