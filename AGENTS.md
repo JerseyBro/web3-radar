@@ -80,5 +80,31 @@ Secret Source of Truth:
 - macOS Keychain for local
 - GitHub Secrets for Actions
 
+## v0.1 Development Freeze
+
+Web3 Intelligence Radar v0.1 and Jersey Secret Bootstrap v0.1 are feature-frozen.
+
+Allowed:
+- P0 critical fixes
+- P1 blocking bug fixes
+- tests required for those fixes
+- minimal documentation corrections
+
+Not allowed:
+- new features
+- speculative refactors
+- architecture expansion
+- new infrastructure
+- new sources without production evidence
+- unrelated cleanup
+
+P2/P3:
+→ docs/V0.2_BACKLOG.md
+
+Rule:
+Smallest Safe Fix.
+Validation before expansion.
+Do not enter v0.2 without explicit user approval.
+
 ## 提交
 - 小步提交，说明变更与验证结果

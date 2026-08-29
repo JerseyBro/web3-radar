@@ -63,9 +63,25 @@ Lark / Local HTTP / File
 
 详细：[docs/SECRET_BOOTSTRAP.md](docs/SECRET_BOOTSTRAP.md)
 
+## Project Status
+
+**v0.1 Development Freeze**
+
+Current phase:
+
+```
+Configuration
+→ Smoke Test
+→ Production E2E
+→ Trial Run
+→ v0.1.0 Release
+```
+
+Feature development is frozen. See [docs/V0.1_DEVELOPMENT_FREEZE.md](docs/V0.1_DEVELOPMENT_FREEZE.md).
+
 ## 当前版本
 
-**v0.1.0**
+**v0.1.0（未 Tag，待 Production E2E 通过）**
 
 ## Known Limitations
 
