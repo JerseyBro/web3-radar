@@ -48,6 +48,13 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          TENCENT_LLM_API_KEY: ${{ secrets.TENCENT_LLM_API_KEY }}
+          VOLCENGINE_API_KEY: ${{ secrets.VOLCENGINE_API_KEY }}
+          OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+          CUSTOM_LLM_API_KEY: ${{ secrets.CUSTOM_LLM_API_KEY }}
           LARK_WEBHOOK_INDUSTRY: ${{ secrets.LARK_WEBHOOK_INDUSTRY }}
           LARK_SIGNING_SECRET_INDUSTRY: ${{ secrets.LARK_SIGNING_SECRET_INDUSTRY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -85,6 +92,13 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          TENCENT_LLM_API_KEY: ${{ secrets.TENCENT_LLM_API_KEY }}
+          VOLCENGINE_API_KEY: ${{ secrets.VOLCENGINE_API_KEY }}
+          OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+          CUSTOM_LLM_API_KEY: ${{ secrets.CUSTOM_LLM_API_KEY }}
           LARK_WEBHOOK_COMPETITOR: ${{ secrets.LARK_WEBHOOK_COMPETITOR }}
           LARK_SIGNING_SECRET_COMPETITOR: ${{ secrets.LARK_SIGNING_SECRET_COMPETITOR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

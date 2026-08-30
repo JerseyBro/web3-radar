@@ -39,9 +39,11 @@ gh auth refresh -s repo,workflow
 ./scripts/secrets-set-keychain.sh
 ```
 
-选 1. OpenAI → 输入 API Key
-选 2. Lark Industry → 输入 Webhook URL
-选 3. Lark Competitor → 输入 Webhook URL（V0.1 允许与 Industry 共用同一个）
+选 LLM Provider → 输入对应 API Key（只需配置 `config/models.yaml` 中 `roles.*` 实际引用的 Provider）：
+- 默认 `roles` 使用 `openai`，则只需配 OpenAI。
+- 如切到 `deepseek`，则需 `DEEPSEEK_API_KEY`，此时 `OPENAI_API_KEY` 变为 OPTIONAL/UNUSED。
+
+选 Lark Industry / Competitor → 输入 Webhook URL（V0.1 允许与 Industry 共用同一个）
 
 ### Step 3: 引导
 
@@ -75,12 +77,21 @@ gh auth refresh -s repo,workflow
 
 | 用途 | Keychain Service | GitHub Secret | 必填 |
 |------|------------------|---------------|------|
-| OpenAI | `web3-radar-openai` | `OPENAI_API_KEY` | 是 |
+| OpenAI | `web3-radar-openai` | `OPENAI_API_KEY` | 动态* |
+| DeepSeek | `web3-radar-deepseek` | `DEEPSEEK_API_KEY` | 动态* |
+| Anthropic Claude | `web3-radar-anthropic` | `ANTHROPIC_API_KEY` | 动态* |
+| Alibaba DashScope | `web3-radar-alibaba` | `DASHSCOPE_API_KEY` | 动态* |
+| Tencent Hunyuan | `web3-radar-tencent` | `TENCENT_LLM_API_KEY` | 动态* |
+| Volcengine Ark | `web3-radar-volcengine` | `VOLCENGINE_API_KEY` | 动态* |
+| OpenCode Go | `web3-radar-opencode-go` | `OPENCODE_GO_API_KEY` | 动态* |
+| Generic LLM | `web3-radar-generic-llm` | `CUSTOM_LLM_API_KEY` | 动态* |
 | Industry Lark | `web3-radar-lark-industry` | `LARK_WEBHOOK_INDUSTRY` | 是 |
 | Competitor Lark | `web3-radar-lark-competitor` | `LARK_WEBHOOK_COMPETITOR` | 是 |
 | Industry Signing | `web3-radar-lark-signing-industry` | `LARK_SIGNING_SECRET_INDUSTRY` | 否 |
 | Competitor Signing | `web3-radar-lark-signing-competitor` | `LARK_SIGNING_SECRET_COMPETITOR` | 否 |
 | Local HTTP Token | `web3-radar-local-http-token` | `LOCAL_WEBHOOK_TOKEN` | 否 |
+
+> \* LLM Keys 动态：仅 `config/models.yaml` 中 `roles.classifier` / `roles.synthesis`（含 fallback）实际引用的 Provider 为 REQUIRED，其余为 OPTIONAL/UNUSED。`doctor` / `production-check` 会据此校验。
 
 > Keychain `account` 统一为 `$USER`；GitHub 同步走 `Keychain → stdin → gh secret set`（不经 `echo`）。
 

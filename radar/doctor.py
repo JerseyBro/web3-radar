@@ -8,7 +8,7 @@ import importlib.util
 from radar.config import ROOT, get_settings
 
 REQUIRED_DEPS = ["pydantic", "httpx", "yaml", "bs4", "feedparser", "dateutil"]
-OPTIONAL_DEPS = ["openai", "rapidfuzz", "trafilatura"]
+OPTIONAL_DEPS = ["openai", "anthropic", "rapidfuzz", "trafilatura"]
 CONFIG_FILES = ["sources.yaml", "scoring.yaml", "models.yaml", "settings.yaml"]
 
 
@@ -91,22 +91,41 @@ def run_doctor() -> int:
         line(c, ok, "" if ok else "MISSING")
         if not ok: overall_ok = False
 
-    # Secrets
+    # Secrets — dynamic based on roles in models.yaml
     print("\nSecrets")
     print("-" * 32)
-    secrets = {
-        "OPENAI_API_KEY": "REQUIRED",
-        "LARK_WEBHOOK_INDUSTRY": "REQUIRED",
-        "LARK_WEBHOOK_COMPETITOR": "REQUIRED",
-    }
+    settings = get_settings()
+    models = settings["models"]
+    try:
+        from pipeline.llm.registry import required_api_key_envs, all_known_api_key_envs, resolve_role
+        required_envs = required_api_key_envs(models)
+        all_envs = all_known_api_key_envs(models)
+        # Always show required LLM keys + Lark keys
+        lark_required = {"LARK_WEBHOOK_INDUSTRY", "LARK_WEBHOOK_COMPETITOR"}
+        display_required = required_envs | lark_required
+        display_all = all_envs | lark_required | {"LARK_SIGNING_SECRET_INDUSTRY", "LARK_SIGNING_SECRET_COMPETITOR", "LOCAL_WEBHOOK_TOKEN"}
+    except Exception:
+        display_required = {"OPENAI_API_KEY", "LARK_WEBHOOK_INDUSTRY", "LARK_WEBHOOK_COMPETITOR"}
+        display_all = display_required | {"LARK_SIGNING_SECRET_INDUSTRY", "LARK_SIGNING_SECRET_COMPETITOR", "LOCAL_WEBHOOK_TOKEN"}
+
     missing_secrets = []
-    for k, req in secrets.items():
+    for k in sorted(display_required):
         ok = _secret_set(k)
         line(k, ok, "" if ok else "MISSING")
         if not ok:
             missing_secrets.append(k)
     if missing_secrets:
         blocked_by_config = True
+    # Optional / unused LLM keys
+    optional_envs = display_all - display_required
+    if optional_envs:
+        print(f"\n  -- Optional / Unused LLM Keys --")
+        for k in sorted(optional_envs):
+            ok = _secret_set(k)
+            if ok:
+                line(k, "CONFIGURED")
+            else:
+                print(f"  {k:<28} OPTIONAL")
 
     print("\nSigning")
     print("-" * 32)
@@ -120,7 +139,6 @@ def run_doctor() -> int:
     line("State directory", state_dir.exists())
     if not state_dir.exists():
         overall_ok = False
-    # schema check
     schema_ok = True
     for f in ["seen.json", "clusters.json", "cost.json", "deliveries.json"]:
         p = state_dir / f
@@ -137,15 +155,35 @@ def run_doctor() -> int:
     line("Cost state", (state_dir / "cost.json").exists() or True)
     line("Delivery state", (state_dir / "deliveries.json").exists() or True)
 
-    # Models / Budget
-    print("\nModels")
+    # LLM Configuration
+    print("\nLLM Configuration")
     print("-" * 32)
-    settings = get_settings()
-    models = settings["models"]
-    cls = models.get("classifier", {}).get("primary", "?")
-    syn = models.get("synthesis", {}).get("primary", "?")
-    print(f"  Classifier                  {cls}")
-    print(f"  Synthesis                   {syn}")
+    try:
+        from pipeline.llm.registry import resolve_role, PROVIDER_DEFS
+        for role in ("classifier", "synthesis"):
+            resolved = resolve_role(models, role)
+            for slot in ("primary", "fallback"):
+                pm = resolved.get(slot)
+                label = f"{role.capitalize()} {slot}"
+                if pm is None:
+                    print(f"  {label:<28} (not configured)")
+                    continue
+                provider, model = pm
+                # Provider check
+                try:
+                    from pipeline.llm.registry import get_provider
+                    prov = get_provider(provider, models)
+                    avail = prov.available()
+                except Exception:
+                    avail = False
+                line(f"{label} provider", avail, f"({provider})" if avail else f"({provider} MISSING key)")
+                line(f"{label} model", True, f"({model})")
+    except Exception:
+        cls = models.get("classifier", {}).get("primary", "?")
+        syn = models.get("synthesis", {}).get("primary", "?")
+        print(f"  Classifier                  {cls}")
+        print(f"  Synthesis                   {syn}")
+
     print("\nBudget")
     print("-" * 32)
     print(f"  Monthly AI Budget           ${models.get('monthly_ai_budget_usd', 5)}")

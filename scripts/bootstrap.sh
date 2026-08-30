@@ -72,6 +72,26 @@ check_all_local_ready() {
   for req in "${RADAR_REQUIRED_SERVICES[@]}"; do
     if ! keychain_exists "$req"; then echo false; return; fi
   done
+  local llm_env
+  for llm_env in $(python3 -c "
+try:
+    from pipeline.llm.registry import required_api_key_envs
+    from radar.config import get_settings
+    for e in sorted(required_api_key_envs(get_settings()['models'])):
+        print(e)
+except Exception:
+    print('OPENAI_API_KEY')
+" 2>/dev/null || echo "OPENAI_API_KEY"); do
+    local found=false
+    local idx
+    for idx in "${!RADAR_ENV_NAMES[@]}"; do
+      if [[ "${RADAR_ENV_NAMES[$idx]}" == "$llm_env" ]]; then
+        if keychain_exists "${RADAR_SERVICES[$idx]}"; then found=true; fi
+        break
+      fi
+    done
+    if [[ "$found" == false ]]; then echo false; return; fi
+  done
   echo true
 }
 
@@ -138,6 +158,28 @@ main() {
   for req in "${RADAR_REQUIRED_SERVICES[@]}"; do
     if ! keychain_exists "$req"; then ready=false; break; fi
   done
+  if [[ "$ready" == true ]]; then
+    local llm_env
+    for llm_env in $(python3 -c "
+try:
+    from pipeline.llm.registry import required_api_key_envs
+    from radar.config import get_settings
+    for e in sorted(required_api_key_envs(get_settings()['models'])):
+        print(e)
+except Exception:
+    print('OPENAI_API_KEY')
+" 2>/dev/null || echo "OPENAI_API_KEY"); do
+      local found=false
+      local idx
+      for idx in "${!RADAR_ENV_NAMES[@]}"; do
+        if [[ "${RADAR_ENV_NAMES[$idx]}" == "$llm_env" ]]; then
+          if keychain_exists "${RADAR_SERVICES[$idx]}"; then found=true; fi
+          break
+        fi
+      done
+      if [[ "$found" == false ]]; then ready=false; break; fi
+    done
+  fi
   if [[ "$ready" == true ]]; then
     log "READY_FOR_E2E"
   else

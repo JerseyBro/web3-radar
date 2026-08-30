@@ -1,26 +1,84 @@
-# Model strategy (V1.1) - explicit primary/fallback, no silent switch
+# Model strategy — multi-provider, config-first, provider-agnostic
+# Backward compatible: legacy flat classifier/synthesis still works (treated as openai).
+
+# ── Providers ───────────────────────────────────────────────────
+# Each provider: type + base_url + api_key_env (env var name, never the key itself).
+# To use a provider, set its api_key_env in Keychain / .env / GitHub Secrets.
+# Only referenced providers' keys are REQUIRED; others are OPTIONAL/UNUSED.
+providers:
+  openai:
+    type: openai_compatible
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+  deepseek:
+    type: openai_compatible
+    base_url: https://api.deepseek.com
+    api_key_env: DEEPSEEK_API_KEY
+  anthropic:
+    type: anthropic
+    base_url: https://api.anthropic.com
+    api_key_env: ANTHROPIC_API_KEY
+  alibaba:
+    type: openai_compatible
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key_env: DASHSCOPE_API_KEY
+  tencent:
+    type: openai_compatible
+    base_url: https://api.hunyuan.cloud.tencent.com/v1
+    api_key_env: TENCENT_LLM_API_KEY
+  volcengine:
+    type: openai_compatible
+    base_url: https://ark.cn-beijing.volces.com/api/v3
+    api_key_env: VOLCENGINE_API_KEY
+  opencode_go:
+    type: openai_compatible
+    base_url: https://opencode.ai/zen/go/v1
+    api_key_env: OPENCODE_GO_API_KEY
+  generic:
+    type: openai_compatible
+    base_url: ""
+    api_key_env: CUSTOM_LLM_API_KEY
+
+# ── Roles (unified — business code calls role, not provider) ────
+roles:
+  classifier:
+    primary:
+      provider: openai
+      model: gpt-5.6-luna
+    fallback: null
+  synthesis:
+    primary:
+      provider: openai
+      model: gpt-5.6-terra
+    fallback:
+      provider: openai
+      model: gpt-5.6-luna
+
+# ── Legacy format (kept for backward compat — roles.* takes precedence) ─
 classifier:
   primary: "gpt-5.6-luna"
-  fallback: null   # if primary unavailable, no AI classification; deterministic candidates still saved
+  fallback: null
 
 synthesis:
   primary: "gpt-5.6-terra"
-  fallback: "gpt-5.6-luna"   # if terra fails, retry with luna
+  fallback: "gpt-5.6-luna"
 
 deep_model: "gpt-5.6-sol"
 deep_model_enabled: false
 
-# Push feature flags (V1.1)
+# ── Push feature flags ──────────────────────────────────────────
 push:
   weekly_enabled: true
-  critical_enabled: false   # first week: critical immediate push OFF
+  critical_enabled: false
 
-# Cost control
+# ── Cost control ────────────────────────────────────────────────
 monthly_ai_budget_usd: 5
 max_ai_calls_per_run: 20
 max_weekly_input_events: 80
 
-# Pricing per 1M tokens (USD) - used by cost guard
+# ── Pricing per 1M tokens (USD) ─────────────────────────────────
+# Add entries here when onboarding a new provider/model.
+# Unknown models use COST_UNKNOWN but still track calls/tokens.
 pricing:
   gpt-5.6-luna:
     input: 1.0
@@ -34,3 +92,36 @@ pricing:
   gpt-4o-mini:
     input: 0.15
     output: 0.6
+  deepseek-chat:
+    input: 0.14
+    output: 0.28
+  deepseek-reasoner:
+    input: 0.55
+    output: 2.19
+  deepseek-v3:
+    input: 0.27
+    output: 1.10
+  claude-3-5-sonnet-20241022:
+    input: 3.0
+    output: 15.0
+  claude-3-5-haiku-20241022:
+    input: 0.80
+    output: 4.0
+  qwen-plus:
+    input: 0.40
+    output: 1.20
+  qwen-max:
+    input: 1.20
+    output: 4.80
+  hunyuan-lite:
+    input: 0.10
+    output: 0.30
+  hunyuan-standard:
+    input: 0.50
+    output: 1.50
+  doubao-pro-32k:
+    input: 0.80
+    output: 2.00
+  doubao-lite-32k:
+    input: 0.30
+    output: 0.80

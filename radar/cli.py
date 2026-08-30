@@ -10,8 +10,7 @@ import httpx
 
 from radar.config import get_settings, ROOT
 from pipeline.cost_guard import CostGuard
-from pipeline.openai_client import OpenAIClient
-from pipeline.analyze import synthesize_report
+from pipeline.llm import LLMClient
 from storage.state import StateStore
 from storage.store import (
     is_new_critical, mark_critical_alerted, report_path as _store_report_path,
@@ -36,8 +35,8 @@ def make_guard(settings, state: StateStore) -> CostGuard:
         pricing=models.get("pricing", {}),
     )
 
-def make_client(settings) -> OpenAIClient:
-    return OpenAIClient(api_key=os.getenv("OPENAI_API_KEY"), base_url=os.getenv("OPENAI_BASE_URL"))
+def make_client(settings) -> LLMClient:
+    return LLMClient(settings["models"])
 
 def period() -> str:
     return datetime.now(timezone.utc).strftime("%Y-W%V")

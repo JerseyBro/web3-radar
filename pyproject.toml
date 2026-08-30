@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "httpx"]
+llm = ["anthropic>=0.34.0"]
 
 [build-system]
 requires = ["hatchling"]

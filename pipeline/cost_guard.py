@@ -39,8 +39,13 @@ class CostGuard:
             self.monthly = _store.load_cost()
 
     def estimate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
-        p = self.pricing.get(model) or self.pricing.get("gpt-4o-mini") or {"input":0.15,"output":0.6}
-        return (input_tokens/1_000_000)*p["input"] + (output_tokens/1_000_000)*p["output"]
+        p = self.pricing.get(model)
+        if p is None:
+            return 0.0
+        return (input_tokens / 1_000_000) * p["input"] + (output_tokens / 1_000_000) * p["output"]
+
+    def is_pricing_known(self, model: str) -> bool:
+        return model in self.pricing
 
     def can_call(self, estimated_cost: float = 0.001) -> tuple[bool, str]:
         if self.calls_this_run >= self.max_calls_per_run:
@@ -49,9 +54,17 @@ class CostGuard:
             return False, f"MONTHLY budget exceeded ({self.budget_usd} USD). Stopping non-essential AI. Candidates preserved."
         return True, ""
 
-    def record(self, model: str, input_tokens: int, output_tokens: int, radar: str) -> float:
+    def record(self, model: str, input_tokens: int, output_tokens: int, radar: str, provider: str | None = None, cost_unknown: bool = False, usage_unavailable: bool = False) -> float:
         import time
-        cost = self.estimate_cost(model, input_tokens, output_tokens)
+
+        if cost_unknown or not self.is_pricing_known(model):
+            cost = 0.0
+            logger.info(f"COST_UNKNOWN model={model} provider={provider or '?'} — tracking tokens only")
+        else:
+            cost = self.estimate_cost(model, input_tokens, output_tokens)
+        if usage_unavailable:
+            logger.info(f"USAGE_UNKNOWN model={model} provider={provider or '?'} — cost estimated from token guess")
+
         if self.state is not None:
             self.state.record_cost(model, input_tokens, output_tokens, cost)
         else:

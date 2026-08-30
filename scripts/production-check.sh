@@ -93,6 +93,27 @@ main() {
       blockers+=("${env_name}_MISSING")
     fi
   done
+  # Dynamic LLM required keys (from roles.* in models.yaml)
+  local llm_env
+  for llm_env in $(python3 -c "
+try:
+    from pipeline.llm.registry import required_api_key_envs
+    from radar.config import get_settings
+    for e in sorted(required_api_key_envs(get_settings()['models'])):
+        print(e)
+except Exception:
+    print('OPENAI_API_KEY')
+" 2>/dev/null || echo "OPENAI_API_KEY"); do
+    local found=false
+    local idx
+    for idx in "${!RADAR_ENV_NAMES[@]}"; do
+      if [[ "${RADAR_ENV_NAMES[$idx]}" == "$llm_env" ]]; then
+        if keychain_exists "${RADAR_SERVICES[$idx]}"; then found=true; fi
+        break
+      fi
+    done
+    if [[ "$found" == false ]]; then blockers+=("${llm_env}_MISSING"); fi
+  done
 
   if [[ ${#blockers[@]} -eq 0 ]]; then
     log "READY_FOR_E2E"
