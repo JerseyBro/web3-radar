@@ -16,6 +16,7 @@
 | Tencent Hunyuan | OpenAI-compatible | `https://api.hunyuan.cloud.tencent.com/v1` | `TENCENT_LLM_API_KEY` | `hunyuan-lite` / `hunyuan-standard` | ✅ 已验证 |
 | Volcengine Ark | OpenAI-compatible | `https://ark.cn-beijing.volces.com/api/v3` | `VOLCENGINE_API_KEY` | `doubao-pro-32k` / `doubao-lite-32k` | ✅ 已验证 |
 | OpenCode Go | OpenAI-compatible | `https://opencode.ai/zen/go/v1` | `OPENCODE_GO_API_KEY` | `deepseek-v4-flash` 等 | ✅ 已验证 |
+| Google Gemini | OpenAI-compatible | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | `gemini-2.0-flash` / `gemini-2.0-pro` | ✅ 已验证 |
 | Generic | OpenAI-compatible | （自定义） | `CUSTOM_LLM_API_KEY` | 任意 | ✅ 已实现 |
 
 > 官方文档优先，第三方博客仅作参考。Base URL 以本表为准，未来如官方变更请以 `config/models.yaml` 注释为准。
@@ -50,6 +51,20 @@ roles:
 ```
 
 然后配置 `DEEPSEEK_API_KEY`（见 [SECRET_BOOTSTRAP](SECRET_BOOTSTRAP.md)）。
+
+### 切换到 Google Gemini
+
+```yaml
+roles:
+  classifier:
+    primary: {provider: google, model: gemini-2.0-flash}
+    fallback: {provider: openai, model: gpt-4o-mini}
+  synthesis:
+    primary: {provider: google, model: gemini-2.0-pro}
+    fallback: {provider: deepseek, model: deepseek-chat}
+```
+
+然后配置 `GEMINI_API_KEY`（见 [SECRET_BOOTSTRAP](SECRET_BOOTSTRAP.md)）。
 
 ### 混合 Provider（不同角色用不同厂商）
 
@@ -155,3 +170,4 @@ Generic OpenAI-Compatible 无需改 Python。
 - Tencent Hunyuan: https://cloud.tencent.com/document/product/1729/111007
 - Volcengine Ark: https://www.volcengine.com/docs/82379
 - OpenCode Go: https://opencode.ai/zen/go/v1 (via https://docs.docker.com/ai/docker-agent/providers/opencode-go/)
+- Google Gemini: https://ai.google.dev/gemini-api/docs/openai

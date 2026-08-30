@@ -42,6 +42,7 @@ gh auth refresh -s repo,workflow
 选 LLM Provider → 输入对应 API Key（只需配置 `config/models.yaml` 中 `roles.*` 实际引用的 Provider）：
 - 默认 `roles` 使用 `openai`，则只需配 OpenAI。
 - 如切到 `deepseek`，则需 `DEEPSEEK_API_KEY`，此时 `OPENAI_API_KEY` 变为 OPTIONAL/UNUSED。
+- 如切到 `google`，则需 `GEMINI_API_KEY`，此时 `OPENAI_API_KEY` 变为 OPTIONAL/UNUSED。
 
 选 Lark Industry / Competitor → 输入 Webhook URL（V0.1 允许与 Industry 共用同一个）
 
@@ -61,10 +62,17 @@ gh auth refresh -s repo,workflow
 
 ```bash
 ./scripts/with-secrets.sh python -m radar ai-test
+./scripts/with-secrets.sh python -m radar ai-test --model synthesis
 ./scripts/with-secrets.sh python -m radar output-test --target lark --radar industry --push
 ```
 
 > Smoke 需 `--push` 才真发；`bootstrap.sh` / `production-check.sh` 本身永不发 Lark。
+
+> 使用 Google Gemini 时：
+> ```bash
+> ./scripts/with-secrets.sh python -m radar ai-test --provider google
+> ./scripts/with-secrets.sh python -m radar ai-test --model synthesis --provider google
+> ```
 
 以后日常通常只需：
 
@@ -84,6 +92,7 @@ gh auth refresh -s repo,workflow
 | Tencent Hunyuan | `web3-radar-tencent` | `TENCENT_LLM_API_KEY` | 动态* |
 | Volcengine Ark | `web3-radar-volcengine` | `VOLCENGINE_API_KEY` | 动态* |
 | OpenCode Go | `web3-radar-opencode-go` | `OPENCODE_GO_API_KEY` | 动态* |
+| Google Gemini | `web3-radar-google` | `GEMINI_API_KEY` | 动态* |
 | Generic LLM | `web3-radar-generic-llm` | `CUSTOM_LLM_API_KEY` | 动态* |
 | Industry Lark | `web3-radar-lark-industry` | `LARK_WEBHOOK_INDUSTRY` | 是 |
 | Competitor Lark | `web3-radar-lark-competitor` | `LARK_WEBHOOK_COMPETITOR` | 是 |

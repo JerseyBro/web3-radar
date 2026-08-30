@@ -38,6 +38,10 @@ providers:
     type: openai_compatible
     base_url: ""
     api_key_env: CUSTOM_LLM_API_KEY
+  google:
+    type: openai_compatible
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_API_KEY
 
 # ── Roles (unified — business code calls role, not provider) ────
 roles:
@@ -125,3 +129,15 @@ pricing:
   doubao-lite-32k:
     input: 0.30
     output: 0.80
+  gemini-1.5-flash:
+    input: 0.075
+    output: 0.30
+  gemini-1.5-pro:
+    input: 1.25
+    output: 5.0
+  gemini-2.0-flash:
+    input: 0.075
+    output: 0.30
+  gemini-2.0-pro:
+    input: 1.25
+    output: 5.0

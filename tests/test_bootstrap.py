@@ -133,7 +133,7 @@ def test_with_secrets_usage():
 
 def test_secrets_set_no_leak():
     """secrets-set-keychain.sh exit must not leak."""
-    r = run(f"echo '7' | bash {SCRIPTS}/secrets-set-keychain.sh 2>&1")
+    r = run(f"echo '15' | bash {SCRIPTS}/secrets-set-keychain.sh 2>&1")
     assert r.returncode == 0
     assert "sk-" not in r.stdout
     print("PASSED: secrets-set no leak")

@@ -45,6 +45,7 @@ RADAR_SERVICES=(
   "web3-radar-volcengine"
   "web3-radar-opencode-go"
   "web3-radar-generic-llm"
+  "web3-radar-google"
   "web3-radar-lark-industry"
   "web3-radar-lark-competitor"
   "web3-radar-lark-signing-industry"
@@ -61,6 +62,7 @@ RADAR_ENV_NAMES=(
   "VOLCENGINE_API_KEY"
   "OPENCODE_GO_API_KEY"
   "CUSTOM_LLM_API_KEY"
+  "GEMINI_API_KEY"
   "LARK_WEBHOOK_INDUSTRY"
   "LARK_WEBHOOK_COMPETITOR"
   "LARK_SIGNING_SECRET_INDUSTRY"
@@ -85,4 +87,5 @@ RADAR_LLM_SERVICES=(
   "web3-radar-volcengine"
   "web3-radar-opencode-go"
   "web3-radar-generic-llm"
+  "web3-radar-google"
 )

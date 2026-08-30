@@ -54,6 +54,7 @@ jobs:
           TENCENT_LLM_API_KEY: ${{ secrets.TENCENT_LLM_API_KEY }}
           VOLCENGINE_API_KEY: ${{ secrets.VOLCENGINE_API_KEY }}
           OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CUSTOM_LLM_API_KEY: ${{ secrets.CUSTOM_LLM_API_KEY }}
           LARK_WEBHOOK_INDUSTRY: ${{ secrets.LARK_WEBHOOK_INDUSTRY }}
           LARK_SIGNING_SECRET_INDUSTRY: ${{ secrets.LARK_SIGNING_SECRET_INDUSTRY }}
@@ -98,6 +99,7 @@ jobs:
           TENCENT_LLM_API_KEY: ${{ secrets.TENCENT_LLM_API_KEY }}
           VOLCENGINE_API_KEY: ${{ secrets.VOLCENGINE_API_KEY }}
           OPENCODE_GO_API_KEY: ${{ secrets.OPENCODE_GO_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CUSTOM_LLM_API_KEY: ${{ secrets.CUSTOM_LLM_API_KEY }}
           LARK_WEBHOOK_COMPETITOR: ${{ secrets.LARK_WEBHOOK_COMPETITOR }}
           LARK_SIGNING_SECRET_COMPETITOR: ${{ secrets.LARK_SIGNING_SECRET_COMPETITOR }}

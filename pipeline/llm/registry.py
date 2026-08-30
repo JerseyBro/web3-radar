@@ -53,6 +53,11 @@ PROVIDER_DEFS: dict[str, dict[str, str]] = {
         "default_base_url": "https://ark.cn-beijing.volces.com/api/v3",
         "default_api_key_env": "VOLCENGINE_API_KEY",
     },
+    "google": {
+        "type": "openai_compatible",
+        "default_base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+        "default_api_key_env": "GEMINI_API_KEY",
+    },
     "opencode_go": {
         "type": "openai_compatible",
         "default_base_url": "https://opencode.ai/zen/go/v1",

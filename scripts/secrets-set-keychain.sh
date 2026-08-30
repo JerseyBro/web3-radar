@@ -5,7 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/lib/common.sh"
 source "$DIR/lib/keychain.sh"
 
-LABELS=("OpenAI" "Lark Industry Webhook" "Lark Competitor Webhook"
+LABELS=("OpenAI" "DeepSeek" "Anthropic" "Alibaba" "Tencent" "Volcengine" "OpenCode Go" "Google" "Custom OpenAI-Compatible" "Lark Industry Webhook" "Lark Competitor Webhook"
          "Industry Signing Secret" "Competitor Signing Secret" "Local HTTP Token")
 
 set_menu() {
