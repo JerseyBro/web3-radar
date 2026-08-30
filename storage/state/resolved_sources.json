@@ -1,0 +1,146 @@
+{
+  "bitget-wallet": {
+    "name": "Bitget Wallet",
+    "app_store": {
+      "app_id": "1395301115",
+      "score": 100,
+      "match": "Bitget Wallet: Crypto, PayFi",
+      "seller": "BitKeep Global Inc.",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://web3.bitget.com"
+  },
+  "okx-wallet": {
+    "name": "OKX Wallet",
+    "app_store": {
+      "app_id": "1327268470",
+      "score": 120,
+      "match": "OKX: Buy Bitcoin BTC & Crypto",
+      "seller": "OKX Inc.",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://www.okx.com/web3"
+  },
+  "universalx": {
+    "name": "UniversalX",
+    "app_store": {
+      "app_id": "6615066845",
+      "score": 50,
+      "match": "UniversalX - Trade ALL Crypto",
+      "seller": "Mini Joy HK Limited",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://universalx.app"
+  },
+  "tokenpocket": {
+    "name": "TokenPocket",
+    "app_store": {
+      "resolved": false,
+      "score": 10,
+      "candidates": 9
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://www.tokenpocket.pro"
+  },
+  "solflare": {
+    "name": "Solflare",
+    "app_store": {
+      "app_id": "1580902717",
+      "score": 50,
+      "match": "Solflare: Solana Crypto Wallet",
+      "seller": "SOLRISE RESEARCH LTD",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://solflare.com"
+  },
+  "zerion": {
+    "name": "Zerion",
+    "app_store": {
+      "app_id": "1456732565",
+      "score": 50,
+      "match": "Zerion: Crypto Wallet & DeFi",
+      "seller": "Zerion LLC",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://zerion.io"
+  },
+  "rabby-wallet": {
+    "name": "Rabby Wallet",
+    "app_store": {
+      "app_id": "6474381673",
+      "score": 60,
+      "match": "Rabby Wallet - Crypto & EVM",
+      "seller": "OPCODE LABS PTE. LTD.",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://rabby.io"
+  },
+  "uxuy": {
+    "name": "UXUY",
+    "app_store": {
+      "app_id": "6744010539",
+      "score": 100,
+      "match": "UXUY Wallet: Gasless, On-chain",
+      "seller": "UXUY LIMITED",
+      "resolved": true
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://uxuy.com"
+  },
+  "exodus": {
+    "name": "Exodus",
+    "app_store": {
+      "resolved": false,
+      "score": 10,
+      "candidates": 10
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://www.exodus.com"
+  },
+  "phantom": {
+    "name": "Phantom",
+    "app_store": {
+      "resolved": false,
+      "score": 40,
+      "candidates": 9
+    },
+    "google_play": {
+      "resolved": false,
+      "error": ""
+    },
+    "official_website": "https://phantom.com"
+  }
+}
