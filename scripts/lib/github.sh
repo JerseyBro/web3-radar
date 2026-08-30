@@ -43,8 +43,16 @@ gh_repo_access() {
 
 gh_workflow_scope() {
   if [[ "$GH_AUTHENTICATED" != true ]]; then return 1; fi
-  # Attempt to list workflows — succeeds only with workflow scope
-  if gh api repos/"$GH_REPO"/workflows --jq '.id' >/dev/null 2>&1; then
+  # Parse X-Oauth-Scopes header case-insensitively from `gh api -i user`.
+  # Header name varies: X-OAuth-Scopes / X-Oauth-Scopes / x-oauth-scopes
+  local scopes_line scopes_lower
+  scopes_line=$(gh api -i user 2>/dev/null | grep -i "^x-oauth-scopes:" || true)
+  if [[ -z "$scopes_line" ]]; then
+    GH_WORKFLOW_SCOPE=false
+    return 1
+  fi
+  scopes_lower=$(echo "$scopes_line" | sed 's/^[^:]*://' | tr '[:upper:]' '[:lower:]')
+  if echo "$scopes_lower" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | grep -qx "workflow"; then
     GH_WORKFLOW_SCOPE=true
     return 0
   fi
@@ -57,8 +65,9 @@ gh_contents_write() {
     GH_CONTENTS_WRITE=false
     return 1
   fi
-  # Attempt to read content (write permission implies read)
-  if gh api repos/"$GH_REPO"/contents/.github >/dev/null 2>&1; then
+  local push_perm
+  push_perm=$(gh api repos/"$GH_REPO" --jq '.permissions.push' 2>/dev/null || echo "false")
+  if [[ "$push_perm" == "true" ]]; then
     GH_CONTENTS_WRITE=true
     return 0
   fi

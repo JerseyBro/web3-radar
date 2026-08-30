@@ -156,19 +156,62 @@ def test_scripts_executable():
     print(f"PASS: all {len(ALL_SH)} scripts executable")
 
 
-def test_doctor_workflow_missing_not_unauthenticated():
-    """With stub gh: authenticated but workflow scope missing.
-    Doctor must report BLOCKED_BY_CREDENTIAL_SCOPE (NOT 'not authenticated')
-    and list WORKFLOW_PERMISSION_MISSING with the refresh action."""
-    r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1")
+def test_github_all_pass_when_permissions_ok():
+    """Authenticated + push true + workflow present -> both PASS."""
+    r = run(f"bash {SCRIPTS}/github-auth-check.sh 2>&1")
+    assert r.returncode == 0, f"github-auth-check failed:\n{r.stdout}\n{r.stderr}"
+    assert "Contents Write                 PASS" in r.stdout, \
+        f"Contents Write should be PASS when permissions.push=true:\n{r.stdout}"
+    assert "Workflow Permission            PASS" in r.stdout, \
+        f"Workflow Permission should be PASS when scope present:\n{r.stdout}"
+    assert "WORKFLOW_PERMISSION_MISSING" not in r.stdout
+    print("PASSED: github all-pass when permissions ok")
+
+
+def test_contents_missing_when_push_false():
+    """Authenticated + push false + workflow present -> Contents MISSING, Workflow PASS."""
+    r = run(f"bash {SCRIPTS}/github-auth-check.sh 2>&1",
+            extra_env={"GH_STUB_PUSH": "false"})
+    assert r.returncode == 0
+    assert "Contents Write                 MISSING" in r.stdout
+    assert "Workflow Permission            PASS" in r.stdout
+    print("PASSED: contents missing when push false")
+
+
+def test_workflow_missing_produces_credential_scope_blocker():
+    """Authenticated + push true + workflow missing -> Contents PASS,
+    Workflow MISSING, BLOCKED_BY_CREDENTIAL_SCOPE."""
+    r = run(f"bash {SCRIPTS}/secrets-doctor.sh 2>&1",
+            extra_env={"GH_STUB_SCOPES": "repo, gist, read:org"})
     assert r.returncode == 0, f"doctor failed:\n{r.stdout}\n{r.stderr}"
-    assert "Authenticated" in r.stdout
+    assert "Workflow Permission            MISSING" in r.stdout
+    assert "Contents Write                 PASS" in r.stdout
     assert "BLOCKED_BY_CREDENTIAL_SCOPE" in r.stdout, \
         "doctor must report credential-scope blocker when workflow scope missing"
     assert "WORKFLOW_PERMISSION_MISSING" in r.stdout
     assert "gh auth refresh -s repo,workflow" in r.stdout
     assert "not authenticated" not in r.stdout.lower()
-    print("PASSED: doctor workflow-missing semantics")
+    print("PASSED: workflow-missing produces credential-scope blocker")
+
+
+def test_header_casing_variations():
+    """Header casing must be case-insensitive: all variants find workflow."""
+    for header in ["X-OAuth-Scopes", "X-Oauth-Scopes", "x-oauth-scopes"]:
+        r = run(f"bash {SCRIPTS}/github-auth-check.sh 2>&1",
+                extra_env={"GH_STUB_HEADER": header})
+        assert "Workflow Permission            PASS" in r.stdout, \
+            f"Header '{header}' should find workflow but got:\n{r.stdout}"
+    print("PASSED: header casing variations")
+
+
+def test_scope_whitespace_variations():
+    """Scope whitespace around commas must be handled."""
+    for scopes in ["repo, workflow", "repo,workflow", "repo,   workflow"]:
+        r = run(f"bash {SCRIPTS}/github-auth-check.sh 2>&1",
+                extra_env={"GH_STUB_SCOPES": scopes})
+        assert "Workflow Permission            PASS" in r.stdout, \
+            f"Scopes '{scopes}' should find workflow but got:\n{r.stdout}"
+    print("PASSED: scope whitespace variations")
 
 
 def test_unauthenticated_shows_not_authenticated():
@@ -247,7 +290,11 @@ if __name__ == "__main__":
         test_secrets_set_no_leak,
         test_env_gitignore,
         test_scripts_executable,
-        test_doctor_workflow_missing_not_unauthenticated,
+        test_github_all_pass_when_permissions_ok,
+        test_contents_missing_when_push_false,
+        test_workflow_missing_produces_credential_scope_blocker,
+        test_header_casing_variations,
+        test_scope_whitespace_variations,
         test_unauthenticated_shows_not_authenticated,
         test_secret_missing_shows_blocked_by_configuration,
         test_runtime_provisioning_semantics,

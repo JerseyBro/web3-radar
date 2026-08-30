@@ -1,9 +1,12 @@
 #!/bin/sh
 # gh CLI stub for deterministic offline bootstrap tests.
-# Modes via GH_STUB_MODE:
-#   authenticated (default): auth OK, repo OK, contents OK, workflow scope MISSING
-#   unauthenticated: every gh command fails (NOT_AUTHENTICATED path)
 # No network access. Real gh is used when scripts run outside the test suite.
+#
+# Controls via env vars:
+#   GH_STUB_MODE: authenticated (default) | unauthenticated
+#   GH_STUB_PUSH: true (default) | false — repo push permission
+#   GH_STUB_SCOPES: scope list for X-Oauth-Scopes header (default includes workflow)
+#   GH_STUB_HEADER: header name casing (default: X-Oauth-Scopes)
 
 case "${GH_STUB_MODE:-authenticated}" in
   unauthenticated)
@@ -15,11 +18,30 @@ case "${GH_STUB_MODE:-authenticated}" in
       "auth status") exit 0 ;;
       "repo view") exit 0 ;;
       "secret list") exit 1 ;;
+      "api -i")
+        # gh api -i user — X-Oauth-Scopes header check
+        header="${GH_STUB_HEADER:-X-Oauth-Scopes}"
+        scopes="${GH_STUB_SCOPES:-admin:public_key, gist, read:org, repo, workflow}"
+        echo "${header}: ${scopes}"
+        echo ""
+        echo '{"login":"test"}'
+        exit 0
+        ;;
       *)
-        case "$*" in
-          *workflows*) exit 1 ;;
-          *) exit 0 ;;
-        esac
+        # gh api repos/... --jq '.permissions.push' or other api
+        for arg in "$@"; do
+          case "$arg" in
+            *".permissions.push"*)
+              if [ "${GH_STUB_PUSH:-true}" = "true" ]; then
+                echo "true"
+              else
+                echo "false"
+              fi
+              exit 0
+              ;;
+          esac
+        done
+        exit 0
         ;;
     esac
     ;;
