@@ -90,12 +90,11 @@ async def run_competitor_scan(client: httpx.AsyncClient, settings: dict, guard: 
     ai_calls_before = guard.calls_this_run if guard else 0
     if do_ai and ai_client and ai_client.available() and guard:
         models = settings["models"]
-        classifier = models.get("classifier", {}).get("primary") or models.get("classifier_model")
         candidates = [e for e in scored if e.score >= 40]
         max_input = models.get("max_weekly_input_events",80)
         candidates = sorted(candidates, key=lambda x: x.score, reverse=True)[:max_input]
         if candidates:
-            analyze_events(candidates, "competitor", ai_client, guard, models, classifier_model=classifier)
+            analyze_events(candidates, "competitor", ai_client, guard, models)
             scored = apply_score(scored, "competitor", scoring_cfg)
 
     to_store = [e for e in scored if e.tier in ("weekly","important","critical")]
