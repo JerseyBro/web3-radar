@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "deliveries": [
+    {
+      "target": "lark",
+      "key": "4fc865b841c48750",
+      "status": "ok",
+      "delivered_at": "2026-08-31T07:43:24.699722+00:00"
+    }
+  ]
+}
