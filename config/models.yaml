@@ -47,13 +47,13 @@ providers:
 roles:
   classifier:
     primary:
-      provider: openai
-      model: gpt-5.6-luna
+      provider: deepseek
+      model: deepseek-chat
     fallback: null
   synthesis:
     primary:
-      provider: openai
-      model: gpt-5.6-terra
+      provider: deepseek
+      model: deepseek-chat
     fallback:
       provider: openai
       model: gpt-5.6-luna

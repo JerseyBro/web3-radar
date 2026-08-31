@@ -56,6 +56,15 @@
 
 ## 手动重跑
 
+**一键验收：**
+
+```bash
+./scripts/acceptance.sh
+./scripts/acceptance.sh --e2e
+```
+
+可选：`--no-ai`、`--no-push`。
+
 **GitHub Actions：** 仓库 → Actions → 选择 `Radar Scan` 或 `Weekly Reports` → **Run workflow**
 
 参数：

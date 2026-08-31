@@ -165,7 +165,18 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 ---
 
-## Step 6 — OpenAI Smoke
+## Step 6 — 一键验收
+
+```bash
+./scripts/acceptance.sh
+./scripts/acceptance.sh --e2e
+```
+
+可选：`--no-ai`、`--no-push`。
+
+---
+
+## Step 7 — OpenAI Smoke
 
 ```bash
 ./scripts/with-secrets.sh python -m radar ai-test
@@ -181,7 +192,7 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 ---
 
-## Step 7 — Lark Smoke
+## Step 8 — Lark Smoke
 
 Industry：
 
@@ -199,7 +210,7 @@ Competitor：
 
 ---
 
-## Step 8 — 手动跑 Radar
+## Step 9 — 手动跑 Radar
 
 > 所有命令以 `python -m radar --help` 为准。本节命令均已验证。
 

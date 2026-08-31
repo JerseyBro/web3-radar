@@ -34,6 +34,8 @@ cd web3-radar
 ## Common Commands
 
 ```bash
+./scripts/acceptance.sh                            # 一键验收（Basic）
+./scripts/acceptance.sh --e2e                      # 一键验收（含 Production E2E）
 ./scripts/bootstrap.sh                              # 一键引导（NO AI CALL / NO LARK PUSH）
 ./scripts/secrets-doctor.sh                         # 健康检查
 ./scripts/production-check.sh                       # 生产就绪检查
@@ -47,6 +49,15 @@ python -m radar competitor --weekly --push          # Competitor 周报（真发
 ```
 
 > `--push` 才真发 Lark；不传 `--push` 为预览（PREVIEW）。
+
+## 一键验收
+
+```bash
+./scripts/acceptance.sh
+./scripts/acceptance.sh --e2e
+```
+
+可选：`--no-ai`、`--no-push`。
 
 ## Architecture
 

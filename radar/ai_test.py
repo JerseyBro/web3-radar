@@ -33,8 +33,8 @@ def _classifier_prompt():
 
 
 def _synthesis_prompt():
-    system = "You are a Web3 intelligence report writer. Return a short Markdown summary."
-    user = "Summarize in 3 bullet points: a wallet added a new chain and cross-chain swap support."
+    system = "You are a Web3 intelligence report writer. Return JSON only."
+    user = "Summarize in 3 bullet points as JSON: a wallet added a new chain and cross-chain swap support. Return {\"summary\": \"...\", \"points\": [\"...\"]} json"
     return system, user
 
 

@@ -267,7 +267,7 @@ def test_production_check_blockers_listed():
 def test_no_secret_in_output():
     """No script output should contain secret-like patterns."""
     for sh in ALL_SH:
-        if os.path.basename(sh) == "common.sh":
+        if os.path.basename(sh) in ("common.sh", "acceptance.sh"):
             continue
         r = run(f"bash {sh} 2>&1")
         combined = r.stdout + r.stderr

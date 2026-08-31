@@ -65,6 +65,9 @@ class OpenAICompatibleProvider(LLMProvider):
         if not self._client:
             return None, {"input_tokens": 0, "output_tokens": 0, "error": "no client"}
 
+        # DeepSeek requires prompt to contain "json" when using json_object
+        if self.provider_name == "deepseek" and schema and "json" not in (system + user).lower():
+            user = user + "\n\nReturn JSON."
         prompt = system + "\n\n" + user
         est_input = self._estimate_tokens(prompt)
         last_err: Exception | None = None

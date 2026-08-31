@@ -2,6 +2,7 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$DIR/lib/common.sh"
 source "$DIR/lib/keychain.sh"
 
 export_deg() {

@@ -159,15 +159,22 @@ async def do_weekly(radar_arg, dry_run, no_ai, output, push, force, settings, st
             critical_cfg = settings["runtime"].get("push", {}).get("critical_enabled", False)
             await handle_critical(state, res, r, can_push=(push and critical_cfg), force=force, dry_run=dry_run)
 
-def build_smoke_report(radar: str) -> Report:
+def build_smoke_report(radar: str, report_id: str | None = None) -> Report:
+    if report_id:
+        return Report(
+            radar=radar, period=period(), kind="smoke",
+            id=report_id,
+            title="Delivery Test", markdown="Web3 Intelligence Radar\nDelivery Test",
+            meta={"environment": os.getenv("RADAR_ENV", "test"), "status": "ok"},
+        )
     return Report(
         radar=radar, period=period(), kind="smoke",
         title="Delivery Test", markdown="Web3 Intelligence Radar\nDelivery Test",
         meta={"environment": os.getenv("RADAR_ENV", "test"), "status": "ok"},
     )
 
-async def do_output_test(target, radar, push, force, settings, state):
-    report = build_smoke_report(radar)
+async def do_output_test(target, radar, push, force, settings, state, report_id: str | None = None):
+    report = build_smoke_report(radar, report_id=report_id)
     ctx = DeliveryContext(radar=radar, report_id=report.id, title=report.title,
                           dry_run=(not push), force=force, state=state)
     router = OutputRouter([target], state=state, settings=settings["runtime"])
@@ -197,6 +204,7 @@ def main():
     parser.add_argument("--force-push", action="store_true", help="Re-send even if already delivered")
     parser.add_argument("--target", default="lark", help="for output-test")
     parser.add_argument("--model", default="classifier", help="for ai-test: classifier|synthesis")
+    parser.add_argument("--report-id", default=None, help="for output-test: override report id (acceptance smoke unique id)")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
     args = parser.parse_args()
@@ -236,7 +244,7 @@ def main():
         radar_arg = args.command
 
     if args.command == "output-test":
-        asyncio.run(do_output_test(args.target, radar_arg, args.push, args.force_push, settings, state))
+        asyncio.run(do_output_test(args.target, radar_arg, args.push, args.force_push, settings, state, report_id=args.report_id))
         return
 
     if args.weekly:

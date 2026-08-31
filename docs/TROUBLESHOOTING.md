@@ -34,6 +34,7 @@
 23. [重复推送](#23-重复推送)
 24. [AI Fallback](#24-ai-fallback)
 25. [with-secrets 缺 Keychain 条目](#25-with-secrets-缺-keychain-条目)
+26. [acceptance.sh 中断](#26-acceptancesh-中断)
 
 ---
 
@@ -198,6 +199,13 @@
 - 原因：Keychain 中无对应条目，`with-secrets` 只注入已存在的 Secret
 - 检查：`./scripts/secrets-doctor.sh` → `Local Secret Store` 段
 - 修复：`./scripts/secrets-set-keychain.sh` 补齐缺失项
+
+## 26. acceptance.sh 中断
+
+- 现象：`./scripts/acceptance.sh` 跑完后显示某一步失败，但后续步骤仍继续执行
+- 原因：这是设计行为，不是脚本崩溃
+- 检查：看每步的 `reason` 和 `next`
+- 修复：按 Summary 里第一个 `BLOCKED` / `FAIL` 步骤修复后重跑
 
 ---
 

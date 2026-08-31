@@ -6,6 +6,8 @@ source "$DIR/lib/common.sh"
 source "$DIR/lib/keychain.sh"
 source "$DIR/lib/github.sh"
 
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+
 REPO="${REPO:-JerseyBro/web3-radar}"
 export GH_REPO="$REPO"
 NON_INTERACTIVE=false
@@ -145,7 +147,7 @@ main() {
 
   section "Radar Doctor"
   if [[ -d "$REPO_ROOT/radar" ]] && [[ -f "$REPO_ROOT/radar/cli.py" ]]; then
-    "$DIR/with-secrets.sh" python -m radar doctor 2>/dev/null || log "  (doctor not available)"
+    "$DIR/with-secrets.sh" "$PYTHON_BIN" -m radar doctor 2>/dev/null || log "  (doctor not available)"
   else
     log "  (radar CLI not found)"
   fi
