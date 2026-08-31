@@ -11,6 +11,7 @@ import httpx
 from radar.config import get_settings, ROOT
 from pipeline.cost_guard import CostGuard
 from pipeline.llm import LLMClient
+from pipeline.analyze import synthesize_report
 from storage.state import StateStore
 from storage.store import (
     is_new_critical, mark_critical_alerted, report_path as _store_report_path,
