@@ -78,19 +78,29 @@ def print_summary(label: str, res: dict, guard: CostGuard):
     s = guard.summary()
     warn = guard.warning()
     tail = f" | WARN: {warn}" if warn else ""
-    print(f"[{label}] sources={res['sources_checked']} failed={res['sources_failed']} raw={res['raw_items']} "
-          f"dup={res['duplicates_removed']} noise={res['noise_removed']} candidates={res['candidate_events']} "
+    # New observability: window + seen + high_signal
+    collected = res.get("collected", res.get("raw_items", 0))
+    after_window = res.get("after_window", collected)
+    removed_by_window = res.get("removed_by_window", 0)
+    after_seen = res.get("after_seen", res.get("raw_items", 0))
+    removed_by_seen = res.get("removed_by_seen", 0)
+    high_signal = res.get("high_signal", len([e for e in res.get("events", []) if e.tier in ("weekly", "important", "critical")]))
+    empty_reason = res.get("empty_reason", "")
+    reason_tail = f" empty_reason={empty_reason}" if empty_reason else ""
+    print(f"[{label}] sources={res['sources_checked']} failed={res['sources_failed']} collected={collected} "
+          f"after_window={after_window} removed_by_window={removed_by_window} after_seen={after_seen} removed_by_seen={removed_by_seen} "
+          f"dup={res['duplicates_removed']} noise={res['noise_removed']} candidates={res['candidate_events']} high_signal={high_signal} "
           f"ai_calls={res['ai_calls']} ai_cost=${s['cost_this_run']:.4f} monthly=${s['monthly_cost']:.2f} "
-          f"critical={len(res['critical_events'])}{tail}")
+          f"critical={len(res['critical_events'])}{reason_tail}{tail}")
 
-async def run_radar(radar: str, settings, state: StateStore, client, guard, http, do_ai: bool) -> dict:
+async def run_radar(radar: str, settings, state: StateStore, client, guard, http, do_ai: bool, weekly: bool = True) -> dict:
     seen = state.load_seen()
     if radar == "industry":
         from radars.industry import run_industry_scan
-        res = await run_industry_scan(http, settings, guard, client, do_ai=do_ai, seen=seen)
+        res = await run_industry_scan(http, settings, guard, client, do_ai=do_ai, seen=seen, weekly=weekly)
     else:
         from radars.competitor import run_competitor_scan
-        res = await run_competitor_scan(http, settings, guard, client, do_ai=do_ai, state=state, seen=seen)
+        res = await run_competitor_scan(http, settings, guard, client, do_ai=do_ai, state=state, seen=seen, weekly=weekly)
     state.add_seen(res.get("processed_ids", []))
     return res
 
@@ -144,7 +154,8 @@ async def do_scan(radar_arg, dry_run, no_ai, output, push, force, settings, stat
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as http:
         radars = ["industry", "competitor"] if radar_arg == "all" else [radar_arg]
         for r in radars:
-            res = await run_radar(r, settings, state, client, guard, http, not no_ai)
+            # scan is ad-hoc, not weekly window
+            res = await run_radar(r, settings, state, client, guard, http, not no_ai, weekly=False)
             print_summary(r, res, guard)
             critical_cfg = settings["runtime"].get("push", {}).get("critical_enabled", False)
             await handle_critical(state, res, r, can_push=(push and critical_cfg), force=force, dry_run=dry_run)
@@ -154,7 +165,7 @@ async def do_weekly(radar_arg, dry_run, no_ai, output, push, force, settings, st
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as http:
         radars = ["industry", "competitor"] if radar_arg == "all" else [radar_arg]
         for r in radars:
-            res = await run_radar(r, settings, state, client, guard, http, not no_ai)
+            res = await run_radar(r, settings, state, client, guard, http, not no_ai, weekly=True)
             print_summary(f"{r} weekly", res, guard)
             await deliver_weekly(r, res, settings, state, client, guard, no_ai, output, push, force, dry_run)
             critical_cfg = settings["runtime"].get("push", {}).get("critical_enabled", False)
@@ -186,10 +197,17 @@ async def do_output_test(target, radar, push, force, settings, state, report_id:
 def sync_state_pull(state: StateStore, dry_run: bool):
     if dry_run:
         return
+    # Only production namespace syncs to radar-state branch
+    if getattr(state, "namespace", "production") != "production":
+        logger.info(f"[state] Skip pull for namespace={state.namespace}")
+        return
     git_state.pull_state(state.dir)
 
 def sync_state_push(state: StateStore, dry_run: bool, summary: str):
     if dry_run:
+        return
+    if getattr(state, "namespace", "production") != "production":
+        logger.info(f"[state] Skip push for namespace={state.namespace}")
         return
     git_state.push_state(state.dir, summary)
 
@@ -232,7 +250,10 @@ def main():
         return
 
     settings = get_settings()
-    state = StateStore()
+    # Namespace isolation: production for scheduled, acceptance for ./scripts/acceptance.sh --e2e
+    # Env RADAR_STATE_NAMESPACE overrides; default production
+    ns = os.getenv("RADAR_STATE_NAMESPACE") or "production"
+    state = StateStore(namespace=ns)
     client = make_client(settings)
 
     # State persistence: pull at start (no-op locally / in CI syncs radar-state)

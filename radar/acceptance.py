@@ -222,7 +222,8 @@ class AcceptanceRunner:
             print(f"      next: {step.next_action}")
 
     def _run(self, name: str, cmd: list[str]) -> CommandResult:
-        return self.executor.run(name, cmd, cwd=self.repo_root)
+        env = {**os.environ, "RADAR_STATE_NAMESPACE": "acceptance"}
+        return self.executor.run(name, cmd, cwd=self.repo_root, env=env)
 
     def _classify_text(self, text: str) -> str:
         low = text.lower()

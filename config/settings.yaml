@@ -2,7 +2,19 @@
 
 state:
   branch: "radar-state"
-  schema_version: 1
+  schema_version: 2
+  # Seen entries expire after TTL to avoid pipeline starvation.
+  # Legacy bare IDs are migrated to timestamped items on first load.
+  seen_ttl_days: 14
+  # Namespace isolation: production (scheduled Actions) vs acceptance (local --e2e) vs test.
+  # Production uses flat storage/state/ (legacy compat); others use storage/state/<namespace>/.
+  namespaces: ["production", "acceptance", "test"]
+
+pipeline:
+  # Weekly window: only events within lookback are considered for weekly report.
+  # Filters out stale 2024/2025 items before seen/dedupe.
+  weekly_lookback_days: 7
+  weekly_timezone: "UTC"
 
 push:
   # First week: only weekly reports on Friday; critical immediate push off until validated.
