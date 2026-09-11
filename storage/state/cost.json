@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "month": "2026-09",
-  "estimated_cost_usd": 0.050006,
-  "calls": 117,
-  "input_tokens": 112476,
+  "estimated_cost_usd": 0.050363,
+  "calls": 120,
+  "input_tokens": 115020,
   "output_tokens": 122361,
   "last_model": "deepseek-chat"
 }
