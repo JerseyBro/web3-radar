@@ -67,8 +67,13 @@ Resolver 结果写入 `storage/state/resolved_sources.json`（位于 `radar-stat
 **配置：** `config/models.yaml`
 
 ```yaml
-classifier: {primary: gpt-5.6-luna, fallback: null}
-synthesis:  {primary: gpt-5.6-terra, fallback: gpt-5.6-luna}
+roles:
+  classifier:
+    primary: {provider: deepseek, model: deepseek-chat}
+    fallback: null
+  synthesis:
+    primary: {provider: deepseek, model: deepseek-chat}
+    fallback: {provider: openai, model: gpt-5.6-luna}
 monthly_ai_budget_usd: 5
 max_ai_calls_per_run: 20
 max_weekly_input_events: 80

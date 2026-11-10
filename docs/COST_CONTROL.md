@@ -4,7 +4,7 @@ AI 成本控制手册。
 
 ## 什么产生费用
 
-- OpenAI API 调用（Classifier / Synthesis）
+- LLM Provider API 调用（Classifier / Synthesis）
 
 ## 什么不产生 AI Token
 
@@ -13,8 +13,8 @@ AI 成本控制手册。
 
 ## 模型
 
-- `classifier.primary: gpt-5.6-luna` → 分类 / 打分 / 摘要
-- `synthesis.primary: gpt-5.6-terra` → 周报合成（fallback `gpt-5.6-luna`）
+- `roles.classifier.primary: deepseek/deepseek-chat` → 分类 / 打分 / 摘要
+- `roles.synthesis.primary: deepseek/deepseek-chat` → 周报合成（fallback `openai/gpt-5.6-luna`）
 - Deep model 默认关闭
 
 ## 预算

@@ -45,7 +45,7 @@ python -m radar scan --no-ai                        # 无 AI 采集链路验证
 python -m radar industry --weekly                   # Industry 周报（预览，不外发）
 python -m radar industry --weekly --push            # Industry 周报（真发 Lark）
 python -m radar competitor --weekly --push          # Competitor 周报（真发 Lark）
-./scripts/with-secrets.sh python -m radar ai-test   # OpenAI 连通性
+./scripts/with-secrets.sh python -m radar ai-test   # 当前 LLM Provider 连通性
 ```
 
 > `--push` 才真发 Lark；不传 `--push` 为预览（PREVIEW）。
@@ -113,4 +113,4 @@ Lark / Local HTTP / File
 - Google Play 部分钱包 unresolved（解析受限，不误绑）
 - 部分 competitor source 覆盖不完整（依赖 App Store / 已知 GitHub / Blog / 官网）
 - X API 未接入
-- 真实 OpenAI / Lark 调用需配置密钥后由 GitHub Actions 或本机执行
+- 真实 LLM / Lark 调用需配置当前 `roles.*` 引用的 Provider 密钥后由 GitHub Actions 或本机执行

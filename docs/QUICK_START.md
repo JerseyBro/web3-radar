@@ -11,17 +11,17 @@
 |------|------|----------|
 | macOS | 任意近期版本 | `sw_vers` |
 | Git | 任意 | `git --version` |
-| Python | **3.12**（`pyproject.toml` 要求 `>=3.12`） | `python3 --version` |
+| Python | **>= 3.12**（CI 使用 3.12） | `python3 --version` |
 | GitHub CLI | 任意 | `gh --version` |
-| OpenAI API Key | Project API Key | — |
+| LLM API Key | 默认 DeepSeek；OpenAI 为 synthesis fallback | — |
 | Lark Bot Webhook | 飞书群自定义机器人 | — |
 
-> Python 必须 3.12。`3.11` 会在 `pip install -e .` 时直接报错。
+> Python 必须至少为 3.12；生产 CI 固定使用 3.12，其他新版本需以完整测试结果为准。
 
 检查：
 
 ```bash
-python3 --version   # 需 3.12.x
+python3 --version   # 需 >= 3.12；CI 使用 3.12
 git --version
 gh --version
 ```
@@ -32,10 +32,10 @@ gh --version
 
 ```bash
 git clone https://github.com/JerseyBro/web3-radar.git
-cd web3-intelligence-radar
+cd web3-radar
 ```
 
-> 本地目录名 `web3-intelligence-radar` 与远端 `web3-radar` 不同，以 `git remote -v` 为准。
+> 本手册默认本地目录名与远端一致，均为 `web3-radar`。
 
 创建虚拟环境并安装：
 
@@ -105,16 +105,17 @@ Workflow Permission        PASS
 
 按菜单选择并输入（输入时隐藏显示）：
 
-| 序号 | 含义 | Keychain Service | GitHub Secret | 必填 |
-|------|------|------------------|---------------|------|
-| 1 | OpenAI API Key | `web3-radar-openai` | `OPENAI_API_KEY` | **是** |
-| 2 | Lark Industry Webhook | `web3-radar-lark-industry` | `LARK_WEBHOOK_INDUSTRY` | **是** |
-| 3 | Lark Competitor Webhook | `web3-radar-lark-competitor` | `LARK_WEBHOOK_COMPETITOR` | **是** |
-| 4 | Industry Signing Secret | `web3-radar-lark-signing-industry` | `LARK_SIGNING_SECRET_INDUSTRY` | 否 |
-| 5 | Competitor Signing Secret | `web3-radar-lark-signing-competitor` | `LARK_SIGNING_SECRET_COMPETITOR` | 否 |
-| 6 | Local HTTP Token | `web3-radar-local-http-token` | `LOCAL_WEBHOOK_TOKEN` | 否 |
+| 菜单项 | Keychain Service | GitHub Secret | 默认必填 |
+|---|---|---|---|
+| DeepSeek | `web3-radar-deepseek` | `DEEPSEEK_API_KEY` | 是 |
+| OpenAI | `web3-radar-openai` | `OPENAI_API_KEY` | synthesis fallback 使用时必填 |
+| Lark Industry Webhook | `web3-radar-lark-industry` | `LARK_WEBHOOK_INDUSTRY` | 是 |
+| Lark Competitor Webhook | `web3-radar-lark-competitor` | `LARK_WEBHOOK_COMPETITOR` | 是 |
+| Signing / Local HTTP | 对应菜单显示的 Service | 对应环境变量 | 否 |
 
-> **V0.1 允许 Industry + Competitor 共用同一个 Lark Webhook。** 先创建一个测试 Bot，把同一个 URL 分别写入 2 和 3。
+> Provider 必填项由 `config/models.yaml` 的 `roles.*`（包含 fallback）动态决定；以 `doctor` 输出为准。
+
+> **V0.1 允许 Industry + Competitor 共用同一个 Lark Webhook。** 先创建一个测试 Bot，把同一个 URL 分别写入菜单中的 Industry 与 Competitor Webhook。
 
 V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
@@ -159,7 +160,7 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 目标：**READY_FOR_E2E**。
 
-若仍为 `BLOCKED_BY_CONFIGURATION`，下方会列出具体 Blocker（如 `WORKFLOW_PERMISSION_MISSING`、`OPENAI_API_KEY_MISSING`），逐项解决后再试。
+若仍为 `BLOCKED_BY_CONFIGURATION`，下方会列出具体 Blocker（如 `WORKFLOW_PERMISSION_MISSING`、`DEEPSEEK_API_KEY_MISSING`），逐项解决后再试。
 
 > 不到 READY_FOR_E2E 前先不要跑 Weekly E2E。
 
@@ -176,7 +177,7 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 ---
 
-## Step 7 — OpenAI Smoke
+## Step 7 — LLM Smoke
 
 ```bash
 ./scripts/with-secrets.sh python -m radar ai-test
@@ -185,10 +186,10 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 | 命令 | 调用的模型 | 取自 |
 |------|-----------|------|
-| `ai-test`（默认 classifier） | `gpt-5.6-luna` | `config/models.yaml` → `classifier.primary` |
-| `ai-test --model synthesis` | `gpt-5.6-terra`（fallback `gpt-5.6-luna`） | `config/models.yaml` → `synthesis` |
+| `ai-test`（默认 classifier） | `deepseek/deepseek-chat` | `config/models.yaml` → `roles.classifier.primary` |
+| `ai-test --model synthesis` | `deepseek/deepseek-chat`（fallback `openai/gpt-5.6-luna`） | `config/models.yaml` → `roles.synthesis` |
 
-预期：两条均输出结构化结果并通过校验；无 `OPENAI_API_KEY` 时显示 `BLOCKED_BY_CONFIGURATION`。
+预期：两条均输出结构化结果并通过校验；缺少当前角色所需 Provider Key 时显示 `BLOCKED_BY_CONFIGURATION`。
 
 ---
 

@@ -25,16 +25,16 @@
 
 ## 配置方式
 
-### 默认（OpenAI，不改配置即兼容旧行为）
+### 当前默认（DeepSeek 主模型，OpenAI synthesis fallback）
 
 ```yaml
 # config/models.yaml — 已默认配置，无需修改
 roles:
   classifier:
-    primary: {provider: openai, model: gpt-5.6-luna}
+    primary: {provider: deepseek, model: deepseek-chat}
     fallback: null
   synthesis:
-    primary: {provider: openai, model: gpt-5.6-terra}
+    primary: {provider: deepseek, model: deepseek-chat}
     fallback: {provider: openai, model: gpt-5.6-luna}
 ```
 
