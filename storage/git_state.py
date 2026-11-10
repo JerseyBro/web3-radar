@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import time
 import logging
+import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -12,10 +13,22 @@ logger = logging.getLogger(__name__)
 BRANCH = "radar-state"
 
 
+def _redact(text: str) -> str:
+    """Remove embedded credentials from git commands and stderr before logging."""
+    safe = re.sub(r"https://[^\s/@:]+:[^\s/@]+@", "https://***:***@", str(text))
+    for key in ("GITHUB_TOKEN", "STATE_PUSH_TOKEN"):
+        value = os.getenv(key)
+        if value:
+            safe = safe.replace(value, "***")
+    return safe
+
+
 def _run(cmd: list[str], cwd: str | None = None, check: bool = True):
     res = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     if check and res.returncode != 0:
-        raise RuntimeError(f"cmd {' '.join(cmd)} failed: {res.stderr.strip()[:300]}")
+        command = _redact(" ".join(cmd))
+        stderr = _redact(res.stderr.strip())[:300]
+        raise RuntimeError(f"cmd {command} failed: {stderr}")
     return res
 
 

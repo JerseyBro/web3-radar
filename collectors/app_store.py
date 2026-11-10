@@ -3,6 +3,7 @@ import logging
 import json
 import httpx
 from datetime import datetime, timezone
+from dateutil import parser as dateparser
 from radar.schema import Event, RadarType, EventType
 from collectors.base import BaseCollector, CollectorResult
 
@@ -34,13 +35,22 @@ class AppStoreCollector(BaseCollector):
             version = app.get("version","")
             notes = app.get("releaseNotes") or ""
             track_url = app.get("trackViewUrl") or f"https://apps.apple.com/app/id{self.app_id}"
+            release_date_raw = app.get("currentVersionReleaseDate") or app.get("releaseDate")
+            release_date = None
+            if release_date_raw:
+                try:
+                    release_date = dateparser.parse(release_date_raw)
+                except (TypeError, ValueError, OverflowError):
+                    release_date = None
             # version history not fully available via lookup, but we get current version notes
             if not notes:
                 notes = version
             eid = Event.make_id(track_url+f"#{version}", f"{self.name} {version}")
             ev = Event(event_id=eid, radar=RadarType(self.radar), source=self.name, source_url=track_url,
                        title=f"{self.name} v{version} - App Store", excerpt=notes[:500],
-                       event_type=EventType.app_update, credibility=self.credibility, entity=self.name)
+                       event_type=EventType.app_update, credibility=self.credibility, entity=self.name,
+                       published_at=release_date,
+                       raw_meta={"current_version_release_date": release_date_raw} if release_date_raw else {})
             return CollectorResult(events=[ev] if notes else [], source=self.name, success=True)
         except Exception as e:
             return CollectorResult(events=[], source=self.name, success=False, error=str(e))

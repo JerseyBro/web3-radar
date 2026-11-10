@@ -5,7 +5,7 @@ import httpx
 from radar.config import get_settings
 from radar.schema import Event
 from collectors.rss import RSSCollector
-from collectors.github import GitHubCollector
+from collectors.github import GitHubCollector, GitHubOrgCollector
 from collectors.app_store import AppStoreCollector
 from collectors.google_play import GooglePlayCollector
 from collectors.base import collect_all
@@ -47,10 +47,10 @@ def build_collectors(settings: dict, state: StateStore | None = None) -> list:
                 repo = "/".join(parts[-2:])
                 collectors.append(GitHubCollector(name=name, repo=repo, credibility=85))
             else:
-                # org only: try slug variants
+                # Organization-only URLs use public activity. Guessing repository
+                # names produced many false 404s and silently lost real updates.
                 org = parts[-1]
-                for repo_name in [slug, slug.replace("-",""), "wallet", "app"]:
-                    collectors.append(GitHubCollector(name=name, repo=f"{org}/{repo_name}", credibility=75))
+                collectors.append(GitHubOrgCollector(name=name, org=org, credibility=75))
         # App Store
         app_id = None
         if slug in resolved:

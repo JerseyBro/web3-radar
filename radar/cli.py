@@ -93,7 +93,17 @@ def print_summary(label: str, res: dict, guard: CostGuard):
           f"ai_calls={res['ai_calls']} ai_cost=${s['cost_this_run']:.4f} monthly=${s['monthly_cost']:.2f} "
           f"critical={len(res['critical_events'])}{reason_tail}{tail}")
 
-async def run_radar(radar: str, settings, state: StateStore, client, guard, http, do_ai: bool, weekly: bool = True) -> dict:
+async def run_radar(
+    radar: str,
+    settings,
+    state: StateStore,
+    client,
+    guard,
+    http,
+    do_ai: bool,
+    weekly: bool = True,
+    record_seen: bool = True,
+) -> dict:
     seen = state.load_seen()
     if radar == "industry":
         from radars.industry import run_industry_scan
@@ -101,7 +111,8 @@ async def run_radar(radar: str, settings, state: StateStore, client, guard, http
     else:
         from radars.competitor import run_competitor_scan
         res = await run_competitor_scan(http, settings, guard, client, do_ai=do_ai, state=state, seen=seen, weekly=weekly)
-    state.add_seen(res.get("processed_ids", []))
+    if record_seen:
+        state.add_seen(res.get("processed_ids", []))
     return res
 
 async def deliver_weekly(radar: str, res: dict, settings, state, client, guard, no_ai, output, push, force, dry_run):
@@ -151,25 +162,45 @@ async def handle_critical(state, res, radar, can_push, force, dry_run):
 
 async def do_scan(radar_arg, dry_run, no_ai, output, push, force, settings, state, client):
     guard = make_guard(settings, state)
+    unhealthy: list[str] = []
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as http:
         radars = ["industry", "competitor"] if radar_arg == "all" else [radar_arg]
         for r in radars:
             # scan is ad-hoc, not weekly window
-            res = await run_radar(r, settings, state, client, guard, http, not no_ai, weekly=False)
+            res = await run_radar(
+                r, settings, state, client, guard, http, not no_ai,
+                weekly=False, record_seen=not dry_run,
+            )
             print_summary(r, res, guard)
+            if res.get("sources_checked", 0) > 0 and res.get("sources_failed", 0) >= res.get("sources_checked", 0):
+                logger.error("[%s] HEALTH_FAIL: all configured sources failed; skipping delivery", r)
+                unhealthy.append(r)
+                continue
             critical_cfg = settings["runtime"].get("push", {}).get("critical_enabled", False)
             await handle_critical(state, res, r, can_push=(push and critical_cfg), force=force, dry_run=dry_run)
+    if unhealthy:
+        raise RuntimeError(f"all configured sources failed for: {', '.join(unhealthy)}")
 
 async def do_weekly(radar_arg, dry_run, no_ai, output, push, force, settings, state, client):
     guard = make_guard(settings, state)
+    unhealthy: list[str] = []
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as http:
         radars = ["industry", "competitor"] if radar_arg == "all" else [radar_arg]
         for r in radars:
-            res = await run_radar(r, settings, state, client, guard, http, not no_ai, weekly=True)
+            res = await run_radar(
+                r, settings, state, client, guard, http, not no_ai,
+                weekly=True, record_seen=not dry_run,
+            )
             print_summary(f"{r} weekly", res, guard)
+            if res.get("sources_checked", 0) > 0 and res.get("sources_failed", 0) >= res.get("sources_checked", 0):
+                logger.error("[%s weekly] HEALTH_FAIL: all configured sources failed; skipping report delivery", r)
+                unhealthy.append(r)
+                continue
             await deliver_weekly(r, res, settings, state, client, guard, no_ai, output, push, force, dry_run)
             critical_cfg = settings["runtime"].get("push", {}).get("critical_enabled", False)
             await handle_critical(state, res, r, can_push=(push and critical_cfg), force=force, dry_run=dry_run)
+    if unhealthy:
+        raise RuntimeError(f"all configured sources failed for: {', '.join(unhealthy)}")
 
 def build_smoke_report(radar: str, report_id: str | None = None) -> Report:
     if report_id:
