@@ -36,6 +36,23 @@ keychain_pipe() {
 
 # ── Web3 Radar Secret Service Names ─────────────────────────────
 # LLM provider keys (provider agnostic — add new provider by extending mapping)
+RADAR_LABELS=(
+  "OpenAI"
+  "DeepSeek"
+  "Anthropic"
+  "Alibaba"
+  "Tencent"
+  "Volcengine"
+  "OpenCode Go"
+  "Custom OpenAI-Compatible"
+  "Google"
+  "Lark Industry Webhook"
+  "Lark Competitor Webhook"
+  "Industry Signing Secret"
+  "Competitor Signing Secret"
+  "Local HTTP Token"
+)
+
 RADAR_SERVICES=(
   "web3-radar-openai"
   "web3-radar-deepseek"

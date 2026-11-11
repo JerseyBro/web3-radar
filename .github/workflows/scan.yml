@@ -59,7 +59,7 @@ jobs:
         run: |
           RADAR="${{ inputs.radar || 'all' }}"
           MODE="${{ inputs.mode || 'scan' }}"
-          PUSH="${{ inputs.push }}"
+          PUSH="${{ github.event_name == 'schedule' && 'true' || inputs.push }}"
           EXTRA=""
           if [ "$MODE" = "dry-run" ]; then EXTRA="$EXTRA --dry-run"; fi
           if [ "$PUSH" = "true" ]; then EXTRA="$EXTRA --push"; fi

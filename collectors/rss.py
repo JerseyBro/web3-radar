@@ -30,10 +30,11 @@ class RSSCollector(BaseCollector):
             title = getattr(entry, "title", "") or "Untitled"
             summary = getattr(entry, "summary", "") or getattr(entry, "description", "")
             published = None
-            if hasattr(entry, "published_parsed") and entry.published_parsed:
+            parsed_time = getattr(entry, "published_parsed", None) or getattr(entry, "updated_parsed", None)
+            if parsed_time:
                 try:
                     import calendar
-                    ts = calendar.timegm(entry.published_parsed)
+                    ts = calendar.timegm(parsed_time)
                     published = datetime.fromtimestamp(ts, tz=timezone.utc)
                 except: pass
             eid = Ev.make_id(link, title)

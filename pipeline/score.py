@@ -1,7 +1,21 @@
 from __future__ import annotations
 from radar.schema import Event
+from radar.schema import EventType
 import yaml
 from pathlib import Path
+import re
+
+
+_MAINTENANCE_COMMIT = re.compile(r"(?:^|:\s)(?:ci|chore|test|build|style|refactor):", re.IGNORECASE)
+
+
+def _evidence_cap(event: Event, score: int) -> int:
+    """A snapshot or maintenance commit alone cannot establish an opportunity."""
+    if event.event_type in (EventType.defi_metric, EventType.market_data):
+        return min(score, 59)
+    if event.event_type == EventType.docs_update and _MAINTENANCE_COMMIT.search(event.title):
+        return min(score, 39)
+    return score
 
 def load_scoring():
     p = Path(__file__).resolve().parent.parent / "config" / "scoring.yaml"
@@ -14,6 +28,7 @@ def score_industry(event: Event, weights: dict | None = None) -> int:
     w = weights or {"impact":0.25,"wallet_relevance":0.25,"novelty":0.15,"credibility":0.15,"money_flow_significance":0.10,"technical_significance":0.10}
     s = (
         event.impact * w.get("impact",0) +
+        event.builder_relevance * w.get("builder_relevance",0) +
         event.wallet_relevance * w.get("wallet_relevance",0) +
         event.novelty * w.get("novelty",0) +
         event.credibility * w.get("credibility",0) +
@@ -26,6 +41,7 @@ def score_competitor(event: Event, weights: dict | None = None) -> int:
     w = weights or {"strategic_importance":0.30,"wallet_relevance":0.25,"novelty":0.20,"credibility":0.15,"execution_signal":0.10}
     s = (
         event.strategic_importance * w.get("strategic_importance",0) +
+        event.builder_relevance * w.get("builder_relevance",0) +
         event.wallet_relevance * w.get("wallet_relevance",0) +
         event.novelty * w.get("novelty",0) +
         event.credibility * w.get("credibility",0) +
@@ -38,12 +54,12 @@ def apply_score(events: list[Event], radar: str, scoring_cfg: dict | None = None
     if radar == "industry":
         w = cfg.get("industry",{}).get("weights")
         for e in events:
-            e.score = score_industry(e, w)
+            e.score = _evidence_cap(e, score_industry(e, w))
             e.tier = e.tier_from_score(radar)
     else:
         w = cfg.get("competitor",{}).get("weights")
         for e in events:
-            e.score = score_competitor(e, w)
+            e.score = _evidence_cap(e, score_competitor(e, w))
             e.tier = e.tier_from_score(radar)
     return events
 

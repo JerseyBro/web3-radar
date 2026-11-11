@@ -50,7 +50,7 @@ class CostGuard:
     def can_call(self, estimated_cost: float = 0.001) -> tuple[bool, str]:
         if self.calls_this_run >= self.max_calls_per_run:
             return False, f"max calls per run reached ({self.max_calls_per_run})"
-        if self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run + estimated_cost > self.budget_usd:
+        if self.monthly.get("estimated_cost_usd", 0.0) + estimated_cost > self.budget_usd:
             return False, f"MONTHLY budget exceeded ({self.budget_usd} USD). Stopping non-essential AI. Candidates preserved."
         return True, ""
 
@@ -83,10 +83,10 @@ class CostGuard:
             "monthly_calls": self.monthly.get("calls", 0),
             "month": self.monthly.get("month"),
             "budget": self.budget_usd,
-            "blocked": (self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run) >= self.budget_usd,
+            "blocked": self.monthly.get("estimated_cost_usd", 0.0) >= self.budget_usd,
         }
 
     def warning(self) -> str | None:
-        if (self.monthly.get("estimated_cost_usd", 0.0) + self.cost_this_run) >= self.budget_usd:
+        if self.monthly.get("estimated_cost_usd", 0.0) >= self.budget_usd:
             return "MONTHLY BUDGET EXCEEDED - AI calls stopped; deterministic pipeline continues, candidates preserved"
         return None

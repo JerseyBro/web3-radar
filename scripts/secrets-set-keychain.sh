@@ -5,8 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/lib/common.sh"
 source "$DIR/lib/keychain.sh"
 
-LABELS=("OpenAI" "DeepSeek" "Anthropic" "Alibaba" "Tencent" "Volcengine" "OpenCode Go" "Google" "Custom OpenAI-Compatible" "Lark Industry Webhook" "Lark Competitor Webhook"
-         "Industry Signing Secret" "Competitor Signing Secret" "Local HTTP Token")
+LABELS=("${RADAR_LABELS[@]}")
 
 set_menu() {
   for i in "${!LABELS[@]}"; do
@@ -55,7 +54,7 @@ printf '\nChoice: '
 read -r choice
 choice="${choice:-$((${#LABELS[@]} + 1))}"
 
-if [[ "$choice" == $((${#LABELS[@]} + 1)) || "$choice" == "${#LABELS[@]}" ]]; then
+if [[ "$choice" == $((${#LABELS[@]} + 1)) ]]; then
   log "Exit"
   exit 0
 fi

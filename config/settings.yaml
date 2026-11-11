@@ -16,6 +16,11 @@ pipeline:
   weekly_lookback_days: 7
   weekly_timezone: "UTC"
 
+report:
+  # Source-linked, deterministic report is the default for independent builders.
+  # AI long-form synthesis can be enabled after source-grounding evaluation.
+  synthesis_enabled: false
+
 push:
   # First week: only weekly reports on Friday; critical immediate push off until validated.
   weekly_enabled: true

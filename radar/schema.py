@@ -39,6 +39,7 @@ class Event(BaseModel):
     novelty: int = 50
     impact: int = 50
     wallet_relevance: int = 50
+    builder_relevance: int = 50
     technical_significance: int = 50
     money_flow_significance: int = 50
     # competitor specific
@@ -54,6 +55,7 @@ class Event(BaseModel):
     ai_summary: Optional[str] = None
     why_it_matters: Optional[str] = None
     wallet_implication: Optional[str] = None
+    developer_action: Optional[str] = None
 
     raw_meta: dict = Field(default_factory=dict)
 

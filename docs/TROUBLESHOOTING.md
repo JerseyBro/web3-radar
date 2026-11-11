@@ -189,7 +189,7 @@
 
 ## 24. AI Fallback
 
-- 现象：日志 `MODEL_FALLBACK from=gpt-5.6-terra to=gpt-5.6-luna reason=...`
+- 现象：启用跨供应商 fallback 后日志出现 `MODEL_FALLBACK from_provider=deepseek from_model=deepseek-flash to_provider=openai to_model=gpt-6-luna reason=...`
 - 原因：`synthesis.primary` 失败，自动用 `fallback` 重试
 - 修复：正常行为；若频繁 fallback，检查 `config/models.yaml` 模型名与账户权限
 

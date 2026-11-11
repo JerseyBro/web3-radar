@@ -48,27 +48,13 @@ roles:
   classifier:
     primary:
       provider: deepseek
-      model: deepseek-chat
+      model: deepseek-flash
     fallback: null
   synthesis:
     primary:
       provider: deepseek
-      model: deepseek-chat
-    fallback:
-      provider: openai
-      model: gpt-5.6-luna
-
-# ── Legacy format (kept for backward compat — roles.* takes precedence) ─
-classifier:
-  primary: "gpt-5.6-luna"
-  fallback: null
-
-synthesis:
-  primary: "gpt-5.6-terra"
-  fallback: "gpt-5.6-luna"
-
-deep_model: "gpt-5.6-sol"
-deep_model_enabled: false
+      model: deepseek-flash
+    fallback: null
 
 # ── Push feature flags ──────────────────────────────────────────
 push:
@@ -81,63 +67,14 @@ max_ai_calls_per_run: 20
 max_weekly_input_events: 80
 
 # ── Pricing per 1M tokens (USD) ─────────────────────────────────
-# Add entries here when onboarding a new provider/model.
-# Unknown models use COST_UNKNOWN but still track calls/tokens.
+# Conservative public list prices for the default and optional fallback models, per 1M tokens.
+# DeepSeek Flash uses peak, cache-miss rates. Check official prices before
+# changing models; the live pipeline skips AI when any configured role model
+# lacks a pricing entry, while deterministic reporting continues.
 pricing:
-  gpt-5.6-luna:
-    input: 1.0
-    output: 4.0
-  gpt-5.6-terra:
-    input: 2.0
-    output: 8.0
-  gpt-5.6-sol:
-    input: 5.0
-    output: 15.0
-  gpt-4o-mini:
-    input: 0.15
-    output: 0.6
-  deepseek-chat:
-    input: 0.14
-    output: 0.28
-  deepseek-reasoner:
-    input: 0.55
-    output: 2.19
-  deepseek-v3:
-    input: 0.27
-    output: 1.10
-  claude-3-5-sonnet-20241022:
-    input: 3.0
-    output: 15.0
-  claude-3-5-haiku-20241022:
-    input: 0.80
-    output: 4.0
-  qwen-plus:
-    input: 0.40
-    output: 1.20
-  qwen-max:
-    input: 1.20
-    output: 4.80
-  hunyuan-lite:
-    input: 0.10
-    output: 0.30
-  hunyuan-standard:
-    input: 0.50
-    output: 1.50
-  doubao-pro-32k:
-    input: 0.80
-    output: 2.00
-  doubao-lite-32k:
+  deepseek-flash:
     input: 0.30
-    output: 0.80
-  gemini-1.5-flash:
-    input: 0.075
-    output: 0.30
-  gemini-1.5-pro:
-    input: 1.25
-    output: 5.0
-  gemini-2.0-flash:
-    input: 0.075
-    output: 0.30
-  gemini-2.0-pro:
-    input: 1.25
-    output: 5.0
+    output: 1.20
+  gpt-6-luna:
+    input: 0.10
+    output: 0.50

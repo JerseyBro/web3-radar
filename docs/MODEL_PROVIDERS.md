@@ -9,74 +9,63 @@
 
 | Provider | Protocol | Base URL | Secret Env | Model 示例 | 状态 |
 |----------|----------|----------|------------|------------|------|
-| OpenAI | OpenAI-compatible | `https://api.openai.com/v1` | `OPENAI_API_KEY` | `gpt-4o-mini` | ✅ 已验证 |
-| DeepSeek | OpenAI-compatible | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` | `deepseek-chat` / `deepseek-reasoner` | ✅ 已验证 |
-| Anthropic Claude | Anthropic Messages API | `https://api.anthropic.com` | `ANTHROPIC_API_KEY` | `claude-3-5-sonnet-20241022` | ✅ 已实现 |
-| Alibaba DashScope | OpenAI-compatible | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` | `qwen-plus` / `qwen-max` | ✅ 已验证 |
-| Tencent Hunyuan | OpenAI-compatible | `https://api.hunyuan.cloud.tencent.com/v1` | `TENCENT_LLM_API_KEY` | `hunyuan-lite` / `hunyuan-standard` | ✅ 已验证 |
-| Volcengine Ark | OpenAI-compatible | `https://ark.cn-beijing.volces.com/api/v3` | `VOLCENGINE_API_KEY` | `doubao-pro-32k` / `doubao-lite-32k` | ✅ 已验证 |
-| OpenCode Go | OpenAI-compatible | `https://opencode.ai/zen/go/v1` | `OPENCODE_GO_API_KEY` | `deepseek-v4-flash` 等 | ✅ 已验证 |
-| Google Gemini | OpenAI-compatible | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | `gemini-2.0-flash` / `gemini-2.0-pro` | ✅ 已验证 |
-| Generic | OpenAI-compatible | （自定义） | `CUSTOM_LLM_API_KEY` | 任意 | ✅ 已实现 |
+| OpenAI | OpenAI-compatible | `https://api.openai.com/v1` | `OPENAI_API_KEY` | `gpt-6-luna` | 适配器测试通过；真实 API 待验收 |
+| DeepSeek | OpenAI-compatible | `https://api.deepseek.com` | `DEEPSEEK_API_KEY` | `deepseek-flash` | 适配器测试通过；真实 API 待验收 |
+| Anthropic Claude | Anthropic Messages API | `https://api.anthropic.com` | `ANTHROPIC_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| Alibaba DashScope | OpenAI-compatible | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| Tencent Hunyuan | OpenAI-compatible | `https://api.hunyuan.cloud.tencent.com/v1` | `TENCENT_LLM_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| Volcengine Ark | OpenAI-compatible | `https://ark.cn-beijing.volces.com/api/v3` | `VOLCENGINE_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| OpenCode Go | OpenAI-compatible | `https://opencode.ai/zen/go/v1` | `OPENCODE_GO_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| Google Gemini | OpenAI-compatible | `https://generativelanguage.googleapis.com/v1beta/openai/` | `GEMINI_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
+| Generic | OpenAI-compatible | （自定义） | `CUSTOM_LLM_API_KEY` | 由用户配置 | 适配器已实现，未验收 |
 
-> 官方文档优先，第三方博客仅作参考。Base URL 以本表为准，未来如官方变更请以 `config/models.yaml` 注释为准。
+> 本表只说明代码有相应协议适配器；不能代替真实 API 验收。模型名称、价格与接口能力请以供应商官方文档为准。当前默认模型的价格使用 DeepSeek 峰时非缓存费率和 OpenAI 标准费率。
 
 ---
 
 ## 配置方式
 
-### 默认（OpenAI，不改配置即兼容旧行为）
+### 当前默认（DeepSeek 主模型，未启用跨厂商 fallback）
 
 ```yaml
 # config/models.yaml — 已默认配置，无需修改
 roles:
   classifier:
-    primary: {provider: openai, model: gpt-5.6-luna}
+    primary: {provider: deepseek, model: deepseek-flash}
     fallback: null
   synthesis:
-    primary: {provider: openai, model: gpt-5.6-terra}
-    fallback: {provider: openai, model: gpt-5.6-luna}
+    primary: {provider: deepseek, model: deepseek-flash}
+    fallback: null
 ```
 
-### 切换到 DeepSeek
+### 仅使用 DeepSeek
 
 ```yaml
 roles:
   classifier:
-    primary: {provider: deepseek, model: deepseek-chat}
-    fallback: {provider: openai, model: gpt-4o-mini}
+    primary: {provider: deepseek, model: deepseek-flash}
+    fallback: null
   synthesis:
-    primary: {provider: deepseek, model: deepseek-chat}
-    fallback: {provider: openai, model: gpt-4o-mini}
+    primary: {provider: deepseek, model: deepseek-flash}
+    fallback: null
 ```
 
 然后配置 `DEEPSEEK_API_KEY`（见 [SECRET_BOOTSTRAP](SECRET_BOOTSTRAP.md)）。
 
-### 切换到 Google Gemini
+### 切换到其他 Provider
 
 ```yaml
 roles:
   classifier:
-    primary: {provider: google, model: gemini-2.0-flash}
-    fallback: {provider: openai, model: gpt-4o-mini}
-  synthesis:
-    primary: {provider: google, model: gemini-2.0-pro}
-    fallback: {provider: deepseek, model: deepseek-chat}
+    primary: {provider: google, model: CURRENT_OFFICIAL_MODEL_ID}
+    fallback: null
+pricing:
+  CURRENT_OFFICIAL_MODEL_ID:
+    input: VERIFIED_USD_PER_1M_INPUT
+    output: VERIFIED_USD_PER_1M_OUTPUT
 ```
 
-然后配置 `GEMINI_API_KEY`（见 [SECRET_BOOTSTRAP](SECRET_BOOTSTRAP.md)）。
-
-### 混合 Provider（不同角色用不同厂商）
-
-```yaml
-roles:
-  classifier:
-    primary: {provider: deepseek, model: deepseek-chat}
-    fallback: {provider: openai, model: gpt-4o-mini}
-  synthesis:
-    primary: {provider: anthropic, model: claude-3-5-sonnet-20241022}
-    fallback: {provider: deepseek, model: deepseek-chat}
-```
+占位值必须替换为供应商当前官方模型 ID 与价格，再配置对应 API Key、运行 `ai-test`。其他 Provider 同理。
 
 ### 自定义网关（OpenRouter / SiliconFlow / LiteLLM / vLLM / 公司网关）
 
@@ -90,9 +79,11 @@ providers:
 roles:
   classifier:
     primary: {provider: my_gateway, model: my-model}
+pricing:
+  my-model: {input: VERIFIED_USD_PER_1M_INPUT, output: VERIFIED_USD_PER_1M_OUTPUT}
 ```
 
-无需新增 Python 代码。
+无需新增 Python 代码，但要核实协议兼容性和真实价格。
 
 ---
 
@@ -105,7 +96,7 @@ roles:
 | non-stream | ✅ 必须 | 同步调用 |
 | JSON structured output | ✅ 必须 | `response_format: json_object`（Anthropic 用 prompt hint） |
 | usage / token metadata | 可选 | 无则标记 `USAGE_UNKNOWN`，不阻塞 |
-| pricing | 可选 | 无则标记 `COST_UNKNOWN`，不阻塞 |
+| pricing | 正式 AI Pipeline 必填 | 任一角色模型无价格时跳过 AI，保留确定性报告 |
 
 不支持（非 Radar 需求）：vision / tools / audio / image / agents / web search。
 
@@ -116,7 +107,7 @@ roles:
 跨 Provider fallback，显式日志：
 
 ```
-MODEL_FALLBACK from_provider=deepseek from_model=deepseek-chat to_provider=openai to_model=gpt-4o-mini reason=rate limit 429
+MODEL_FALLBACK from_provider=deepseek from_model=deepseek-flash to_provider=openai to_model=gpt-6-luna reason=rate limit 429
 ```
 
 Fallback 仅针对：provider unavailable / rate limit / timeout / 5xx 等可重试错误。
@@ -127,8 +118,9 @@ Fallback 仅针对：provider unavailable / rate limit / timeout / 5xx 等可重
 
 ## Cost Guard
 
-- `config/models.yaml` → `pricing` 中未配置的模型 → `COST_UNKNOWN`，只记录 `calls` / `tokens`，费用记 0，不阻塞 Pipeline。
+- `config/models.yaml` → 当前角色主模型或 fallback 缺少 `pricing` 时，正式分类/合成跳过 AI，保留确定性报告。直接调用 `LLMClient` 的工具不受 CostGuard 保护。
 - Provider 不返回 `usage` → `USAGE_UNKNOWN`，用 `len//4` 估算。
+- `$5` 是应用内估算预算，不能代替服务商账户消费上限；默认关闭 AI 长文合成，DeepSeek 的分类调用关闭默认思考模式以控制成本。
 
 ---
 
@@ -155,7 +147,7 @@ Fallback 仅针对：provider unavailable / rate limit / timeout / 5xx 等可重
 3. 在 `scripts/lib/keychain.sh` 加映射
 4. 在 `.env.example` 加示例
 5. 在 `.github/workflows/*.yml` 加 env
-6. 在 `pricing` 加模型价格（可选）
+6. 在 `pricing` 加当前官方模型价格（正式 AI Pipeline 必填）
 7. 用 `python -m radar ai-test` Smoke
 
 Generic OpenAI-Compatible 无需改 Python。
@@ -164,7 +156,9 @@ Generic OpenAI-Compatible 无需改 Python。
 
 ## 来源
 
-- DeepSeek: https://api-docs.deepseek.com
+- DeepSeek 模型与价格: https://api-docs.deepseek.com/quick_start/pricing/
+- DeepSeek Thinking Mode: https://api-docs.deepseek.com/guides/thinking_mode/
+- OpenAI GPT-6 Luna: https://developers.openai.com/api/docs/models/gpt-6-luna
 - Anthropic: https://docs.anthropic.com/en/api/messages
 - Alibaba DashScope: https://help.aliyun.com/zh/model-studio/compatibility-of-openai-with-dashscope
 - Tencent Hunyuan: https://cloud.tencent.com/document/product/1729/111007

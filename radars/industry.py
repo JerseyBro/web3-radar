@@ -5,6 +5,7 @@ import httpx
 from radar.config import get_settings
 from radar.schema import Event
 from collectors.rss import RSSCollector
+from collectors.github import GitHubCollector
 from collectors.defillama import DefiLlamaCollector
 from collectors.coingecko import CoinGeckoCollector
 from collectors.base import collect_all
@@ -25,7 +26,18 @@ def build_collectors(settings: dict) -> list:
     collectors = []
     for grp in ["official_primary","established_media"]:
         for s in sources.get(grp,[]):
-            collectors.append(RSSCollector(name=s["name"], url=s["url"], radar="industry", credibility=s.get("credibility",70)))
+            source_type = s.get("type", "rss")
+            if source_type == "rss":
+                collectors.append(RSSCollector(name=s["name"], url=s["url"], radar="industry", credibility=s.get("credibility",70)))
+            elif source_type == "github":
+                parts = s["url"].rstrip("/").split("/")
+                if len(parts) >= 2:
+                    collectors.append(GitHubCollector(
+                        name=s["name"], repo="/".join(parts[-2:]), radar="industry",
+                        credibility=s.get("credibility", 85),
+                    ))
+            else:
+                logger.warning("Unsupported industry source type=%s name=%s", source_type, s.get("name"))
     for s in sources.get("defi_data",[]):
         if s["type"] == "defillama":
             collectors.append(DefiLlamaCollector(credibility=s.get("credibility",90)))
@@ -74,9 +86,10 @@ async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: Co
     clustered = cluster_events(deduped)
     # Heuristic scoring before AI (set defaults)
     for e in clustered:
-        e.impact = 60 if e.credibility >= 85 else 50
-        e.wallet_relevance = 55
-        e.novelty = 50
+        # Collector-specific evidence (for example a market snapshot's low
+        # impact) must not be overwritten by a generic source prior.
+        if e.impact == 50 and e.credibility >= 85:
+            e.impact = 60
     scored = apply_score(clustered, "industry", scoring_cfg)
 
     # AI classification (optional)

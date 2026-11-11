@@ -5,8 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$DIR/lib/common.sh"
 source "$DIR/lib/keychain.sh"
 
-LABELS=("OpenAI" "Lark Industry Webhook" "Lark Competitor Webhook"
-         "Industry Signing Secret" "Competitor Signing Secret" "Local HTTP Token")
+LABELS=("${RADAR_LABELS[@]}")
 
 set_menu() {
   for i in "${!LABELS[@]}"; do
