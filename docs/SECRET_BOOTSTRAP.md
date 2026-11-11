@@ -41,7 +41,7 @@ gh auth refresh -s repo,workflow
 
 选 LLM Provider → 输入对应 API Key（只需配置 `config/models.yaml` 中 `roles.*` 实际引用的 Provider）：
 - 当前默认 classifier / synthesis 使用 `deepseek`，需配置 `DEEPSEEK_API_KEY`。
-- 当前 synthesis fallback 使用 `openai`，因此 `OPENAI_API_KEY` 也会被 doctor 识别为 REQUIRED；移除该 fallback 后才会变为 OPTIONAL/UNUSED。
+- 当前默认无 synthesis fallback，`OPENAI_API_KEY` 为 OPTIONAL/UNUSED；显式配置 OpenAI fallback 后才会被 doctor 识别为 REQUIRED。
 - 如切到 `google`，则需 `GEMINI_API_KEY`，此时 `OPENAI_API_KEY` 变为 OPTIONAL/UNUSED。
 
 选 Lark Industry / Competitor → 输入 Webhook URL（V0.1 允许与 Industry 共用同一个）

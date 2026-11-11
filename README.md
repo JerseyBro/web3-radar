@@ -1,31 +1,24 @@
 # Web3 Intelligence Radar
 
-> High-signal, low-noise Web3 intelligence radar for industry trends and wallet competitor monitoring.
+> 可追溯的 Web3 产品与技术情报，面向独立开发者的人工决策。
 
-面向 Web3 Wallet 团队的低成本 AI 情报雷达。把公开 Web3 数据经过采集 → 标准化 → 去重 → 聚类 → 评分 → AI 分析 → 情报报告 → Lark / 本地 HTTP，转化为真正可用的团队情报。
+把公开来源经过采集 → 标准化 → 去重 → 评分 → 可选 AI 分类 → 来源关联报告 → 飞书/文件，整理为“观察到什么、可能有什么影响、下一步如何验证”。报告提供研究线索，不构成投资建议。
 
-当前版本：**v0.1.0（Minimum Usable Release）**。
+当前工作分支在迭代 v0.2 独立开发者阅读体验；`pyproject.toml` 仍是未发布的 v0.1.0。真实模型/飞书/定时运行尚待配置后的端到端验收。
 
 ## What It Does
 
-- **Industry Intelligence** — 行业动态、Narrative、Money Flow、TVL、Wallet 基础设施、DeFi、AA/CA 等。回答：发生了什么、为什么重要、对 Wallet 意味着什么。
-- **Competitor Intelligence** — 10 款 Wallet（Bitget / OKX / UniversalX / TokenPocket / Solflare / Zerion / Rabby / UXUY / Exodus / Phantom）的 App Store / Blog / GitHub 变化，过滤 bug fixes，只报战略/技术/交易能力变化。
+- **Industry** — 官方博客、EIP、媒体、DeFiLlama、CoinGecko 等公开信号；把产品/技术变化变成可验证的开发者候选。当前来源不能证明资金流向或商业机会。
+- **Competitor** — 监控现有 10 款 Wallet 的公开产品变化；这是当前覆盖边界，不代表完整 Web3 产品版图。
 
 ## Current Status
 
-**v0.1 Development Freeze** — 功能已冻结，当前处于生产配置与验证阶段。
-
-```
-Configuration  →  Smoke Test  →  Production E2E  →  Trial Run  →  v0.1.0 Release
-     ↑ you are here
-```
-
-详见 [docs/V0.1_DEVELOPMENT_FREEZE.md](docs/V0.1_DEVELOPMENT_FREEZE.md) 与 [docs/V0.2_BACKLOG.md](docs/V0.2_BACKLOG.md)。
+用户已授权启动 v0.2 改造。当前仍需要真实 API、飞书和至少一周试运行数据来评估信号质量。剩余工作见 [v0.2 Backlog](docs/V0.2_BACKLOG.md)。
 
 ## First Time Here?
 
 ```bash
-git clone https://github.com/JerseyBro/web3-radar.git
+git clone git@github.com:JerseyBro/web3-radar.git
 cd web3-radar
 ```
 
@@ -66,20 +59,20 @@ Collectors
   ↓
 Normalize → Filter → Dedupe → Cluster → Score
   ↓
-AI (Classifier / Synthesis, structured output)
+AI Classifier（可选；模型建议需人工核查）
   ↓
-Report (Markdown + JSON)
+确定性 Report (Markdown + JSON；AI 长文合成默认关闭)
   ↓
-Lark / Local HTTP / File
+File → Lark 简报 / Local HTTP
 ```
 
-跨 Run 状态保存在专用 git 分支 `radar-state`（seen / clusters / cost / deliveries / resolved）。
+跨 Run 状态保存在专用 git 分支 `radar-state`（seen / 有界候选缓存 / critical alerts / cost / deliveries / resolved）。周报将当次采集与窗口内已缓存候选合并。
 
 ## 核心原则
 
 - High Signal / Low Noise
 - Low Cost（月 AI 预算 ≤ $5）
-- Traceable（每个结论保留 Source URL）
+- Traceable（区分原始证据、分析假设和待验证动作，保留 Source URL）
 - Maintainable（配置化、单源失败隔离、无重型框架）
 
 ## Documentation
@@ -106,11 +99,13 @@ Lark / Local HTTP / File
 
 ## 当前版本
 
-**v0.1.0**（未 Tag，待 Production E2E 通过）
+**v0.1.0**（未 Tag；v0.2 代码正在独立分支迭代）
 
 ## Known Limitations
 
 - Google Play 部分钱包 unresolved（解析受限，不误绑）
 - 部分 competitor source 覆盖不完整（依赖 App Store / 已知 GitHub / Blog / 官网）
 - X API 未接入
+- 当前仅跟踪公开内容和少量聚合指标；没有链上资金归因、用户需求或收入验证数据
+- 飞书完整报告入口在 GitHub Actions 中指向运行页，需有仓库权限并下载 Artifact；本地运行直接读取 `reports/`
 - 真实 LLM / Lark 调用需配置当前 `roles.*` 引用的 Provider 密钥后由 GitHub Actions 或本机执行

@@ -13,7 +13,7 @@
 | Git | 任意 | `git --version` |
 | Python | **>= 3.12**（CI 使用 3.12） | `python3 --version` |
 | GitHub CLI | 任意 | `gh --version` |
-| LLM API Key | 默认 DeepSeek；OpenAI 为 synthesis fallback | — |
+| LLM API Key | 默认仅需 DeepSeek；OpenAI 为可选 fallback | — |
 | Lark Bot Webhook | 飞书群自定义机器人 | — |
 
 > Python 必须至少为 3.12；生产 CI 固定使用 3.12，其他新版本需以完整测试结果为准。
@@ -186,8 +186,8 @@ V0.1 默认可不配置 Signing Secret，普通 Webhook 直接可用。
 
 | 命令 | 调用的模型 | 取自 |
 |------|-----------|------|
-| `ai-test`（默认 classifier） | `deepseek/deepseek-chat` | `config/models.yaml` → `roles.classifier.primary` |
-| `ai-test --model synthesis` | `deepseek/deepseek-chat`（fallback `openai/gpt-5.6-luna`） | `config/models.yaml` → `roles.synthesis` |
+| `ai-test`（默认 classifier） | `deepseek/deepseek-flash` | `config/models.yaml` → `roles.classifier.primary` |
+| `ai-test --model synthesis` | `deepseek/deepseek-flash`（默认无 fallback） | `config/models.yaml` → `roles.synthesis` |
 
 预期：两条均输出结构化结果并通过校验；缺少当前角色所需 Provider Key 时显示 `BLOCKED_BY_CONFIGURATION`。
 
@@ -297,7 +297,7 @@ python -m radar resolve
 ```
 [ ] gh auth status        → 已登录
 [ ] github-auth-check.sh  → Workflow Permission PASS
-[ ] OPENAI_API_KEY        → CONFIGURED
+[ ] OPENAI_API_KEY        → OPTIONAL（仅启用 OpenAI fallback 时需要）
 [ ] LARK_WEBHOOK_INDUSTRY → CONFIGURED
 [ ] LARK_WEBHOOK_COMPETITOR → CONFIGURED
 [ ] ./scripts/bootstrap.sh          → READY / READY_FOR_E2E

@@ -69,18 +69,18 @@ Resolver 结果写入 `storage/state/resolved_sources.json`（位于 `radar-stat
 ```yaml
 roles:
   classifier:
-    primary: {provider: deepseek, model: deepseek-chat}
+    primary: {provider: deepseek, model: deepseek-flash}
     fallback: null
   synthesis:
-    primary: {provider: deepseek, model: deepseek-chat}
-    fallback: {provider: openai, model: gpt-5.6-luna}
+    primary: {provider: deepseek, model: deepseek-flash}
+    fallback: null
 monthly_ai_budget_usd: 5
 max_ai_calls_per_run: 20
 max_weekly_input_events: 80
 ```
 
 - `classifier.primary` 为 null 或缺失时，不做 AI 分类，保留确定性候选。
-- `synthesis` fallback 时必须打印 `MODEL_FALLBACK from=... to=... reason=...`，禁止静默切 `gpt-4o-mini`。
+- `synthesis` fallback 时必须打印 `MODEL_FALLBACK from=... to=... reason=...`，禁止静默切 `gpt-6-luna`。
 
 **修改模型前必须：**
 
@@ -99,12 +99,12 @@ max_weekly_input_events: 80
 
 **位置：** `prompts/industry.md` / `prompts/competitor.md`
 
-- Industry：8 节（核心判断 / Top Signals / Money Flow / Narrative / Technology / Opportunities / Risks / Watch Next）
-- Competitor：6 节（核心判断 / Top Moves / Direction / Technology / Opportunities / Watchlist）
+- 默认报告由 `radar/report.py` 确定性生成：来源记录 / 假设 / 验证动作 / 不确定性。
+- 两份 Prompt 仅在 `report.synthesis_enabled: true` 时用于 AI 长文合成；发布前需核查其来源关联质量。
 
-Prompt 修改属于行为变化。Freeze 期间非 P0/P1 不改。未来修改必须记录：Why / Before / After / Expected Impact / Trial Result。不要建立复杂 Prompt Versioning System。
+Prompt 修改属于行为变化。v0.2 迭代中应记录 Why / Before / After / Expected Impact / Trial Result；真实质量以试运行标注样本评估。
 
-无 AI 时为 fallback 报告（标题 + `共 N 个信号事件` + Top 15 列表）。
+无 AI 时仍生成来源关联报告；若无高信号事件，最多展示 3 条明确标注的待验证 archive 候选。
 
 ---
 

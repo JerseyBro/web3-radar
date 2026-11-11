@@ -28,8 +28,8 @@ GitHub cron 使用 UTC。Asia/Shanghai = UTC+8，所以周五 08:20 = UTC 周五
 
 ## radar-state
 
-- 每次运行：`pull radar-state → 运行 → 原子更新 → commit → push radar-state`
-- 分支保存 seen / clusters / cost / deliveries / resolved
+- 每次运行：`pull radar-state → 运行 → 原子更新 → commit → push radar-state`。CI 中远端认证、读取、提交失败会使任务失败；首次缺少分支才允许初始化。
+- 分支保存 seen / 有界候选缓存 / critical alerts / clusters / cost / deliveries / resolved
 
 ## 权限
 
@@ -54,4 +54,4 @@ concurrency:
 
 ## artifact
 
-每次运行上传 Markdown + JSON 报告（保留 30 天），不含 `.env` / Secret。
+Weekly 每次先写 Markdown + JSON，再投递飞书，并上传报告 Artifact（保留 30 天），不含 `.env` / Secret。飞书的完整报告入口指向当前 Actions 运行页，需仓库权限并下载 Artifact。单独的 Scan 只上传运行摘要，不会冒充完整报告。
