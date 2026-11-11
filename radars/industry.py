@@ -86,9 +86,10 @@ async def run_industry_scan(client: httpx.AsyncClient, settings: dict, guard: Co
     clustered = cluster_events(deduped)
     # Heuristic scoring before AI (set defaults)
     for e in clustered:
-        e.impact = 60 if e.credibility >= 85 else 50
-        e.wallet_relevance = 55
-        e.novelty = 50
+        # Collector-specific evidence (for example a market snapshot's low
+        # impact) must not be overwritten by a generic source prior.
+        if e.impact == 50 and e.credibility >= 85:
+            e.impact = 60
     scored = apply_score(clustered, "industry", scoring_cfg)
 
     # AI classification (optional)

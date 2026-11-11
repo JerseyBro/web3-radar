@@ -155,11 +155,22 @@ def events_path(dt: datetime | None = None) -> Path:
     return ROOT / "storage" / "events" / f"{dt.strftime('%Y-%m')}.jsonl"
 
 def append_events(events: list):
+    from radar.report import public_source_url, redact_access_urls
+
     p = events_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     with open(p, "a", encoding="utf-8") as f:
         for e in events:
-            f.write(e.model_dump_json() + "\n")
+            safe = e.model_copy(update={
+                "source_url": public_source_url(e.source_url) or "",
+                "title": redact_access_urls(e.title),
+                "source": redact_access_urls(e.source),
+                "excerpt": redact_access_urls(e.excerpt),
+                "ai_summary": redact_access_urls(e.ai_summary) if e.ai_summary else None,
+                "why_it_matters": redact_access_urls(e.why_it_matters) if e.why_it_matters else None,
+                "developer_action": redact_access_urls(e.developer_action) if e.developer_action else None,
+            })
+            f.write(safe.model_dump_json() + "\n")
 
 def load_recent_events(days: int = 7) -> list:
     from radar.schema import Event

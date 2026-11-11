@@ -83,6 +83,12 @@ class OpenAICompatibleProvider(LLMProvider):
                 }
                 if schema:
                     kwargs["response_format"] = {"type": "json_object"}
+                # Flash enables expensive reasoning by default. Classification and
+                # source-linked summaries need predictable JSON, not chain of thought.
+                if self.provider_name == "deepseek":
+                    kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+                elif self.provider_name == "openai" and model == "gpt-6-luna":
+                    kwargs["reasoning_effort"] = "none"
 
                 resp = self._client.chat.completions.create(**kwargs)
                 content = resp.choices[0].message.content or "{}"
@@ -101,7 +107,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 try:
                     parsed = json.loads(content)
                 except json.JSONDecodeError as e:
-                    logger.warning(f"[{self.provider_name}] JSON parse failed: {e} content={content[:500]}")
+                    logger.warning("[%s] JSON parse failed: %s (length=%d)", self.provider_name, e, len(content))
                     return None, {**usage, "error": "json_parse_failed"}
 
                 return parsed, usage

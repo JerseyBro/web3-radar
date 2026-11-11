@@ -1,11 +1,10 @@
 industry:
   weights:
-    impact: 0.25
-    wallet_relevance: 0.25
+    impact: 0.20
+    builder_relevance: 0.30
     novelty: 0.15
-    credibility: 0.15
-    money_flow_significance: 0.10
-    technical_significance: 0.10
+    credibility: 0.20
+    technical_significance: 0.15
   thresholds:
     noise: [0, 39]
     archive: [40, 59]
@@ -15,10 +14,10 @@ industry:
 
 competitor:
   weights:
-    strategic_importance: 0.30
-    wallet_relevance: 0.25
+    strategic_importance: 0.25
+    builder_relevance: 0.25
     novelty: 0.20
-    credibility: 0.15
+    credibility: 0.20
     execution_signal: 0.10
   thresholds:
     noise: [0, 39]
