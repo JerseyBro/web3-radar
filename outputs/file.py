@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from outputs.base import BaseOutput, DeliveryResult, DeliveryContext, DeliveryStatus
-from radar.report import Report
+from radar.report import Report, redact_access_urls
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,12 @@ class FileOutput(BaseOutput):
 
     def deliver(self, report: Report, context: DeliveryContext) -> DeliveryResult:
         # Always persist the report (even in dry-run / preview).
-        md_path = self.dir / f"{report.period}-{report.radar}.md"
-        json_path = self.dir / f"{report.period}-{report.radar}.json"
-        md_path.write_text(report.markdown, encoding="utf-8")
+        stem = f"{report.period}-{report.radar}"
+        if report.kind != "weekly":
+            stem = f"{stem}-{report.kind}"
+        md_path = self.dir / f"{stem}.md"
+        json_path = self.dir / f"{stem}.json"
+        md_path.write_text(redact_access_urls(report.markdown), encoding="utf-8")
         json_path.write_text(json.dumps(report.canonical_json(), indent=2, ensure_ascii=False), encoding="utf-8")
         return DeliveryResult(
             target=self.target, success=True, status=DeliveryStatus.SUCCESS.value,

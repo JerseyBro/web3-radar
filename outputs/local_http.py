@@ -9,7 +9,7 @@ import httpx
 from outputs.base import (
     BaseOutput, DeliveryResult, DeliveryContext, DeliveryStatus, DeliveryError,
 )
-from radar.report import Report
+from radar.report import Report, public_source_url, redact_access_urls
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +35,10 @@ class LocalHTTPOutput(BaseOutput):
                 "report_id": report.id,
                 "period": report.period,
                 "title": report.title,
-                "markdown": report.markdown,
+                "markdown": redact_access_urls(report.markdown),
                 "events": [
-                    {"event_id": e.event_id, "title": e.title,
-                     "source": e.source, "source_url": e.source_url,
+                    {"event_id": e.event_id, "title": redact_access_urls(e.title),
+                     "source": redact_access_urls(e.source), "source_url": public_source_url(e.source_url) or "",
                      "score": e.score, "tier": e.tier}
                     for e in report.events[:50]
                 ],

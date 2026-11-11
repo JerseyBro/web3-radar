@@ -6,12 +6,14 @@ import time
 import json
 import logging
 import os
+import re
+from urllib.parse import urlsplit
 import httpx
 
 from outputs.base import (
     BaseOutput, DeliveryResult, DeliveryContext, DeliveryStatus, DeliveryError,
 )
-from radar.report import Report
+from radar.report import Report, public_source_url, redact_access_urls, verification_for_event
 
 logger = logging.getLogger(__name__)
 
@@ -36,49 +38,150 @@ def _sign(secret: str, timestamp: str) -> str:
     return base64.b64encode(h.digest()).decode()
 
 
-def build_industry_card(report_title: str, summary: str, events: list[dict]) -> dict:
-    elements = []
-    elements.append({"tag": "div", "text": {"tag": "lark_md", "content": f"**{report_title}**\n{summary[:400]}"}})
-    if events:
-        md = "\n".join([f"• [{e['title'][:60]}]({e['url']}) `score:{e.get('score','')}`" for e in events[:6]])
-        elements.append({"tag": "div", "text": {"tag": "lark_md", "content": f"**🔥 Top Signals**\n{md}"}})
-    elements.append({"tag": "div", "text": {"tag": "lark_md", "content": "💰 Money Flow / 🚀 Narrative / ⚙️ Technology / 💡 Opportunities 详见完整报告."}})
+_MD_SPECIAL = re.compile(r"([\\`*_{}\[\]()#+.!<>|])")
+
+
+def _safe_text(value: object, limit: int) -> str:
+    """Render untrusted source text as one line of Lark Markdown text."""
+    line = " ".join(redact_access_urls(value).split())[:limit]
+    return _MD_SPECIAL.sub(r"\\\1", line)
+
+
+def _safe_url(value: object) -> str | None:
+    """Only include clickable links that cannot break Lark Markdown syntax."""
+    if not isinstance(value, str) or not value or len(value) > 2048:
+        return None
+    if public_source_url(value) is None:
+        return None
+    if any(ord(ch) < 32 or ch.isspace() or ch in r"\\()[]<>\"'" for ch in value):
+        return None
+    try:
+        parsed = urlsplit(value)
+        if parsed.scheme.lower() not in ("http", "https") or not parsed.hostname:
+            return None
+        if parsed.username or parsed.password:
+            return None
+    except ValueError:
+        return None
+    return value
+
+
+def _div(content: str) -> dict:
+    return {"tag": "div", "text": {"tag": "lark_md", "content": content}}
+
+
+def _brief_card(
+    radar: str,
+    report_title: str,
+    summary: str,
+    events: list[dict],
+    *,
+    meta: dict | None = None,
+) -> dict:
+    meta = meta or {}
+    checked = meta.get("sources_checked")
+    failed = meta.get("sources_failed")
+    candidate_only = meta.get("candidate_only") is True
+    available = max(0, checked - failed) if isinstance(checked, int) and isinstance(failed, int) else None
+    status = []
+    if available is not None:
+        status.append(f"来源可用 {available}/{checked}")
+    status.append(f"待验证候选 {len(events)} 条" if candidate_only else f"入选 {len(events)} 条")
+    cached = meta.get("cached_events_added")
+    if isinstance(cached, int) and cached > 0:
+        status.append(f"此前扫描补入 {cached} 条")
+    mode = meta.get("analysis_mode")
+    if mode in ("ai", "llm", "AI"):
+        status.append("AI 辅助")
+    elif mode in ("rules", "deterministic", "no_ai"):
+        status.append("规则筛选")
+
+    elements = [_div(f"**{_safe_text(report_title, 100)}**\n{' · '.join(status)}")]
+    if isinstance(failed, int) and failed > 0:
+        elements.append(_div(f"⚠️ {failed} 个来源失败，本次只覆盖可用来源。"))
+    if summary:
+        elements.append(_div(_safe_text(summary, 240)))
+
+    shown = 0
+    hidden = 0
+    for event in events:
+        if shown >= 3:
+            break
+        url = _safe_url(event.get("url"))
+        if not url:
+            hidden += 1
+            continue
+        shown += 1
+        title = _safe_text(event.get("title") or "未命名信号", 100)
+        source = _safe_text(event.get("source") or urlsplit(url).hostname, 60)
+        date = _safe_text(event.get("published_at"), 24)
+        label = "待验证 · " if candidate_only else ""
+        lines = [f"**{shown}. {label}[{title}]({url})**"]
+        detail = _safe_text(event.get("summary"), 160)
+        if detail:
+            lines.append(detail)
+        implication = _safe_text(event.get("why"), 120)
+        if implication:
+            lines.append(f"可能影响：{implication}")
+        action = _safe_text(event.get("action"), 140)
+        if action:
+            label = "AI 建议验证（待核查）" if event.get("ai_action") else "下一步验证"
+            lines.append(f"{label}：{action}")
+        lines.append(f"来源：[{source}]({url})" + (f" · {date}" if date else ""))
+        elements.append(_div("\n".join(lines)))
+    if not events:
+        elements.append(_div("本次筛选无达标新信号；这不表示市场没有变化。"))
+    elif not shown:
+        subject = "候选" if candidate_only else "入选信号"
+        elements.append(_div(f"{subject}的来源链接未通过校验，本消息未展示这些{subject}。"))
+    elif hidden:
+        subject = "候选" if candidate_only else "信号"
+        elements.append(_div(f"另有 {hidden} 条{subject}因来源链接未通过校验而未展示。"))
+
+    report_url = _safe_url(meta.get("report_url"))
+    if report_url:
+        elements.append(_div(f"[打开运行记录并下载完整报告]({report_url})"))
+    industry = radar != "competitor"
     return {
         "msg_type": "interactive",
         "card": {
-            "header": {"title": {"tag": "plain_text", "content": "📡 Web3 Industry Intelligence"}, "template": "blue"},
+            "header": {
+                "title": {"tag": "plain_text", "content": "📡 Web3 Industry Intelligence" if industry else "👛 Web3 Wallet Competitor Intelligence"},
+                "template": "blue" if industry else "orange",
+            },
             "elements": elements,
         },
     }
+
+
+def build_industry_card(report_title: str, summary: str, events: list[dict]) -> dict:
+    """Compatibility entry point for callers supplying simple event dicts."""
+    return _brief_card("industry", report_title, summary, events)
 
 
 def build_competitor_card(report_title: str, summary: str, events: list[dict]) -> dict:
-    elements = []
-    elements.append({"tag": "div", "text": {"tag": "lark_md", "content": f"**{report_title}**\n{summary[:400]}"}})
-    if events:
-        md = "\n".join([f"• [{e['title'][:60]}]({e['url']}) `score:{e.get('score','')}`" for e in events[:6]])
-        elements.append({"tag": "div", "text": {"tag": "lark_md", "content": f"**🏆 Top Competitor Moves**\n{md}"}})
-    elements.append({"tag": "div", "text": {"tag": "lark_md", "content": "🔄 Direction / ⚙️ Tech / 💡 Opportunities 详见完整报告."}})
-    return {
-        "msg_type": "interactive",
-        "card": {
-            "header": {"title": {"tag": "plain_text", "content": "👛 Web3 Wallet Competitor Intelligence"}, "template": "orange"},
-            "elements": elements,
-        },
-    }
+    """Compatibility entry point for callers supplying simple event dicts."""
+    return _brief_card("competitor", report_title, summary, events)
 
 
 def build_card_from_report(report: Report) -> dict:
     if report.kind == "smoke":
         return build_smoke_card(report)
-    top = [
-        {"title": e.title, "url": e.source_url, "score": e.score}
-        for e in report.events[:6]
-    ]
-    summary = report.markdown[:600]
-    if report.radar == "competitor":
-        return build_competitor_card(f"{report.kind.capitalize()} {report.period}", summary, top)
-    return build_industry_card(f"{report.kind.capitalize()} {report.period}", summary, top)
+    events = [{
+        "title": e.title,
+        "url": e.source_url,
+        "source": e.source,
+        "summary": e.excerpt,
+        "why": e.why_it_matters,
+        "published_at": e.published_at.date().isoformat() if e.published_at else None,
+        "action": e.developer_action or verification_for_event(e)[1],
+        "ai_action": bool(e.developer_action),
+    } for e in report.events]
+    kind = "重点提醒" if report.kind == "critical" else "周报简报"
+    return _brief_card(
+        report.radar, f"{report.period} · {kind}", "", events,
+        meta=report.meta,
+    )
 
 
 def build_smoke_card(report: Report) -> dict:
